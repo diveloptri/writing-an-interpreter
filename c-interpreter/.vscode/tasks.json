@@ -1,0 +1,44 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "Custom build task",
+			"command": "/usr/bin/gcc",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-g",
+				"-I ${workspaceFolder}/c-interpreter/include",
+				"${workspaceFolder}/c-interpreter/src/main.c",
+				"${workspaceFolder}/c-interpreter/src/lexer.c",
+				"${workspaceFolder}/c-interpreter/src/repl.c",
+				"${workspaceFolder}/c-interpreter/src/token.c",
+				"-o",
+				"${workspaceFolder}/c-interpreter/debug/main"
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler this programm"
+		},
+		{
+			"type": "shell",
+			"label": "Run C Program",
+			"command": "/usr/bin/gcc -fdiagnostics-color=always -g -I ${workspaceFolder}/c-interpreter/include ${workspaceFolder}/c-interpreter/src/main.c ${workspaceFolder}/c-interpreter/src/lexer.c ${workspaceFolder}/c-interpreter/src/repl.c ${workspaceFolder}/c-interpreter/src/token.c -o ${workspaceFolder}/c-interpreter/debug/main && ${workspaceFolder}/c-interpreter/debug/main",
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"detail": "Run this task"
+		}
+	]
+}
