@@ -1,6 +1,6 @@
-use crate::token::*;
+use crate::token::token::*;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Lexer {
     pub input: String,
     pub position: i32,

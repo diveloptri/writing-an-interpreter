@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use chimera::token::*;
+    use crate::token::token::*;
 
     #[test]
     fn test_next_token(){
@@ -27,7 +27,7 @@ mod tests {
             10 != 9;
             "#
         );
-        let mut lexer = chimera::lexer::Lexer::new(input);
+        let mut lexer = crate::lexer::lexer::Lexer::new(input);
         let test_token_vec = create_test_token_vec();
         for token in test_token_vec {
             let nxt_token = lexer.next_token();

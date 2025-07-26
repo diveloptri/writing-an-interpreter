@@ -2,7 +2,7 @@ use phf::{phf_map, Map};
 
 pub type TokenType = &'static str;
 
-#[derive(Default, Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct Token {
    pub token_type: TokenType,
    pub literal: String 
@@ -12,22 +12,22 @@ pub static ILLEGAL: &str = "ILLEGAL";
 pub static EOF: &str = "EOF";
 
 // Identifiers & Literals
-pub static IDENT: &str = "IDENT";
-pub static INT: &str = "INT";
+pub const IDENT: &str = "IDENT";
+pub const INT: &str = "INT";
 
 // Operators
 pub static ASSIGN: &str = "=";
-pub static PLUS: &str = "+";
-pub static MINUS: &str = "-";
-pub static BANG: &str = "!";
-pub static ASTERISK: &str = "*";
-pub static SLASH: &str = "/";
+pub const PLUS: &str = "+";
+pub const MINUS: &str = "-";
+pub const BANG: &str = "!";
+pub const ASTERISK: &str = "*";
+pub const SLASH: &str = "/";
 
 pub static LT: &str = "<";
 pub static GT: &str = ">";
 
-pub static EQ: &str = "==";
-pub static NQ: &str = "!=";
+pub const EQ: &str = "==";
+pub const NQ: &str = "!=";
 
 // Delimeters
 pub static COMMA: &str = ",";
@@ -40,12 +40,12 @@ pub static RBRACE: &str = "}";
 
 // Keywords
 pub static FUNCTION: &str = "FUNCTION";
-pub static LET: &str = "LET";
+pub const LET: &str = "LET";
 pub static TRUE: &str = "TRUE";
 pub static FALSE: &str = "FALSE";
 pub static IF: &str = "IF";
 pub static ELSE: &str = "ELSE";
-pub static RETURN: &str = "RETURN";
+pub const RETURN: &str = "RETURN";
 
 static KEYWORDS: Map<&str, TokenType> = phf_map! {
     "fn" => FUNCTION,
