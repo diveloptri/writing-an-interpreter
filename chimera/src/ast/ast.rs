@@ -1,3 +1,5 @@
+use std::{any::Any, fmt::Debug};
+
 use crate::token::token::Token;
 
 pub trait Node {
@@ -5,18 +7,21 @@ pub trait Node {
     fn string(&self) -> String;
 } 
 
-pub trait Statement: Node{
+pub trait Statement: Node + Any {
     fn statement_node(&self);
+    fn as_any(&self) -> &dyn Any;
 }
 
-pub trait Expression: Node {
+pub trait Expression: Node + Any + Debug {
     fn expression_node(&self);
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub struct Program {
     pub statements: Vec<Box<dyn Statement>>,
 }
 
+#[derive(Debug)]
 pub struct PrefixExpression {
     pub token: Token,
     pub operator: String,
@@ -36,8 +41,10 @@ impl Node for PrefixExpression {
 
 impl Expression for PrefixExpression {
     fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
+#[derive(Debug)]
 pub struct InfixExpression {
     pub token: Token,
     pub left: Box<dyn Expression>,
@@ -57,6 +64,7 @@ impl Node for InfixExpression {
 
 impl Expression for InfixExpression {
     fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 
@@ -78,6 +86,7 @@ impl Node for Program {
     }
 }
 
+#[derive(Debug)]
 pub struct Identifier {
     pub token: Token,
     pub value: String
@@ -87,6 +96,7 @@ impl Node for Identifier {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
+
     fn string(&self) -> String {
         self.value.clone()
     }
@@ -94,8 +104,10 @@ impl Node for Identifier {
 
 impl Expression for Identifier {
     fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
+#[derive(Debug)]
 pub struct LetStatement {
     pub token: Token,
     pub name: Identifier,
@@ -104,12 +116,14 @@ pub struct LetStatement {
 
 impl Statement for LetStatement {
     fn statement_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for LetStatement{
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
+
     fn string(&self) -> String {
         format!(
             "{} {} = {};",
@@ -124,8 +138,10 @@ impl Node for LetStatement{
 
 impl Expression for LetStatement{
     fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
+#[derive(Debug)]
 pub struct ReturnStatement {
     pub token: Token,
     pub return_value: Option<Box<dyn Expression>>,
@@ -133,6 +149,7 @@ pub struct ReturnStatement {
 
 impl Statement for ReturnStatement {
     fn statement_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for ReturnStatement{
@@ -154,8 +171,10 @@ impl Node for ReturnStatement{
 
 impl Expression for ReturnStatement{
     fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
+#[derive(Debug)]
 pub struct ExpressionStatement {
     pub token: Token,
     pub expression: Option<Box<dyn Expression>>,
@@ -163,6 +182,7 @@ pub struct ExpressionStatement {
 
 impl Statement for ExpressionStatement {
     fn statement_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for ExpressionStatement {
@@ -181,8 +201,10 @@ impl Node for ExpressionStatement {
 
 impl Expression for ExpressionStatement {
     fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
+#[derive(Debug)]
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: i64,
@@ -190,6 +212,7 @@ pub struct IntegerLiteral {
 
 impl Expression for IntegerLiteral {
     fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for IntegerLiteral {

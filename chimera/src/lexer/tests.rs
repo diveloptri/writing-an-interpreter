@@ -31,8 +31,19 @@ mod tests {
         let test_token_vec = create_test_token_vec();
         for token in test_token_vec {
             let nxt_token = lexer.next_token();
-            assert_eq!(token.token_type, nxt_token.token_type);
-            assert_eq!(token.literal, nxt_token.literal);
+            assert_eq!(
+                token.token_type,
+                nxt_token.token_type,
+                "{:?} test - token_type wrong, expected = {}, got = {}",
+                token, nxt_token.token_type, token.token_type
+            );
+
+            assert_eq!(
+                token.literal,
+                nxt_token.literal,
+                "{:?} test - literal wrong, expected = {}, got = {}",
+                token, nxt_token.literal, token.literal
+            );
         }
     }
 

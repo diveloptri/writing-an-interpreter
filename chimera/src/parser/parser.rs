@@ -50,7 +50,7 @@ impl Parser {
 
     fn parse_prefix_expression(&mut self) -> Option<Box<dyn Expression>> {
         match self.cur_token.token_type {
-            token::IDENT => Some(self.parse_identifier()),
+            token::IDENT => self.parse_identifier(),
             token::INT => self.parse_integer_literal(),
             token::BANG => self.parse_prefix_expression_with_operator(),
             token::MINUS => self.parse_prefix_expression_with_operator(),
@@ -121,11 +121,11 @@ impl Parser {
         self.infix_parse_fns.insert(token_type, func);
     }
 
-    pub fn parse_identifier(&self) -> Box<dyn Expression> {
-        Box::new(ast::Identifier{
+    pub fn parse_identifier(&self) -> Option<Box<dyn Expression>> {
+        Some(Box::new(ast::Identifier{
             token: self.cur_token.clone(),
             value: self.cur_token.literal.clone()
-        })
+        }))
     }
 
     pub fn errors(&self) -> Vec<String> {
@@ -161,6 +161,8 @@ impl Parser {
     }
 
     pub fn parse_let_statement(&mut self) -> Option<LetStatement> {
+        let let_token = self.cur_token.clone();
+
         if !self.expect_peek(token::IDENT) {
             return None
         }
@@ -175,7 +177,7 @@ impl Parser {
         }
 
         let stmt = LetStatement {
-            token: self.cur_token.clone(),
+            token: let_token,
             name: name, 
             value: None,
         };
@@ -216,10 +218,7 @@ impl Parser {
     }
 
     pub fn parse_expression(&mut self) -> Option<Box<dyn Expression>> {
-        match self.prefix_parse_fns.get(self.cur_token.token_type) {
-            Some(prefix) => prefix(self),
-            None => None,
-        }
+        self.parse_prefix_expression()
     }
 
     pub fn parse_expression_statement(&mut self) -> ExpressionStatement {

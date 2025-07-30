@@ -8,46 +8,46 @@ pub struct Token {
    pub literal: String 
 }
 
-pub static ILLEGAL: &str = "ILLEGAL";
-pub static EOF: &str = "EOF";
+pub const ILLEGAL: &str = "ILLEGAL";
+pub const EOF: &str = "EOF";
 
 // Identifiers & Literals
 pub const IDENT: &str = "IDENT";
 pub const INT: &str = "INT";
 
 // Operators
-pub static ASSIGN: &str = "=";
+pub const ASSIGN: &str = "=";
 pub const PLUS: &str = "+";
 pub const MINUS: &str = "-";
 pub const BANG: &str = "!";
 pub const ASTERISK: &str = "*";
 pub const SLASH: &str = "/";
 
-pub static LT: &str = "<";
-pub static GT: &str = ">";
+pub const LT: &str = "<";
+pub const GT: &str = ">";
 
 pub const EQ: &str = "==";
 pub const NQ: &str = "!=";
 
 // Delimeters
-pub static COMMA: &str = ",";
-pub static SEMICOLON: &str = ";";
+pub const COMMA: &str = ",";
+pub const SEMICOLON: &str = ";";
 
-pub static LPAREN: &str = "(";
-pub static RPAREN: &str = ")";
-pub static LBRACE: &str = " {";
-pub static RBRACE: &str = "}";
+pub const LPAREN: &str = "(";
+pub const RPAREN: &str = ")";
+pub const LBRACE: &str = " {";
+pub const RBRACE: &str = "}";
 
 // Keywords
-pub static FUNCTION: &str = "FUNCTION";
+pub const FUNCTION: &str = "FUNCTION";
 pub const LET: &str = "LET";
-pub static TRUE: &str = "TRUE";
-pub static FALSE: &str = "FALSE";
-pub static IF: &str = "IF";
-pub static ELSE: &str = "ELSE";
+pub const TRUE: &str = "TRUE";
+pub const FALSE: &str = "FALSE";
+pub const IF: &str = "IF";
+pub const ELSE: &str = "ELSE";
 pub const RETURN: &str = "RETURN";
 
-static KEYWORDS: Map<&str, TokenType> = phf_map! {
+const KEYWORDS: Map<&str, TokenType> = phf_map! {
     "fn" => FUNCTION,
     "let" => LET,
     "true" => TRUE,
