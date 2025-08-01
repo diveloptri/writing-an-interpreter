@@ -35,7 +35,7 @@ pub const SEMICOLON: &str = ";";
 
 pub const LPAREN: &str = "(";
 pub const RPAREN: &str = ")";
-pub const LBRACE: &str = " {";
+pub const LBRACE: &str = "{";
 pub const RBRACE: &str = "}";
 
 // Keywords

@@ -21,53 +21,6 @@ pub struct Program {
     pub statements: Vec<Box<dyn Statement>>,
 }
 
-#[derive(Debug)]
-pub struct PrefixExpression {
-    pub token: Token,
-    pub operator: String,
-    pub right: Box<dyn Expression>
-
-}
-
-impl Node for PrefixExpression {
-    fn token_literal(&self) -> String {
-        self.token.literal.clone()
-    }
-
-    fn string(&self) -> String {
-        format!("{} {}", self.operator, self.right.string())
-    }
-}
-
-impl Expression for PrefixExpression {
-    fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
-}
-
-#[derive(Debug)]
-pub struct InfixExpression {
-    pub token: Token,
-    pub left: Box<dyn Expression>,
-    pub operator: String,
-    pub right: Box<dyn Expression>
-}
-
-impl Node for InfixExpression {
-    fn token_literal(&self) -> String {
-        self.token.literal.clone()
-    }
-
-    fn string(&self) -> String {
-        format!("{} {} {}", self.left.string(), self.operator, self.right.string())
-    }
-}
-
-impl Expression for InfixExpression {
-    fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
-}
-
-
 impl Node for Program {
     fn token_literal(&self) -> String {
         if let Some(first) = self.statements.first() {
@@ -84,27 +37,6 @@ impl Node for Program {
             .collect::<Vec<String>>()
             .join("")
     }
-}
-
-#[derive(Debug)]
-pub struct Identifier {
-    pub token: Token,
-    pub value: String
-}
-
-impl Node for Identifier {
-    fn token_literal(&self) -> String {
-        self.token.literal.clone()
-    }
-
-    fn string(&self) -> String {
-        self.value.clone()
-    }
-}
-
-impl Expression for Identifier {
-    fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -137,6 +69,27 @@ impl Node for LetStatement{
 }
 
 impl Expression for LetStatement{
+    fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Debug)]
+pub struct Identifier {
+    pub token: Token,
+    pub value: String
+}
+
+impl Node for Identifier {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        self.value.clone()
+    }
+}
+
+impl Expression for Identifier {
     fn expression_node(&self) {}
     fn as_any(&self) -> &dyn Any { self }
 }
@@ -223,4 +176,50 @@ impl Node for IntegerLiteral {
     fn string(&self) -> String {
         self.token.literal.clone()
     }
+}
+
+#[derive(Debug)]
+pub struct PrefixExpression {
+    pub token: Token,
+    pub operator: String,
+    pub right: Box<dyn Expression>
+
+}
+
+impl Node for PrefixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        format!("{} {}", self.operator, self.right.string())
+    }
+}
+
+impl Expression for PrefixExpression {
+    fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Debug)]
+pub struct InfixExpression {
+    pub token: Token,
+    pub left: Box<dyn Expression>,
+    pub operator: String,
+    pub right: Box<dyn Expression>
+}
+
+impl Node for InfixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        format!("{} {} {}", self.left.string(), self.operator, self.right.string())
+    }
+}
+
+impl Expression for InfixExpression {
+    fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
 }

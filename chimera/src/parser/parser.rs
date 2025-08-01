@@ -49,6 +49,7 @@ impl Parser {
     }
 
     fn parse_prefix_expression(&mut self) -> Option<Box<dyn Expression>> {
+        
         match self.cur_token.token_type {
             token::IDENT => self.parse_identifier(),
             token::INT => self.parse_integer_literal(),

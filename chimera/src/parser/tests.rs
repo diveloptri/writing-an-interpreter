@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::ast::{ExpressionStatement, Identifier, IntegerLiteral, LetStatement, Node, ReturnStatement, Statement};
+    use crate::ast::ast::{Expression, ExpressionStatement, Identifier, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
     use crate::lexer::lexer;
     use crate::parser::parser::{self, Parser};
 
@@ -76,6 +76,9 @@ mod tests {
         }
         return true
     }
+    
+
+
 
     #[test]
     fn test_return_statements() {
@@ -202,6 +205,81 @@ mod tests {
             "5",
             int_literal.token_literal()
         );
+    }
+
+    #[test]
+    fn test_parsing_prefix_expression() {
+        struct PrefixTest {
+            input: &'static str,
+            operator: &'static str,
+            integer_value: i64,
+        }
+
+        let prefix_tests: Vec<PrefixTest> = vec![
+            PrefixTest{input: "!5", operator: "!", integer_value: 5},
+            PrefixTest{input: "-15", operator: "-", integer_value: 15},
+        ];
+
+        for test in prefix_tests.iter(){
+            let lexer = lexer::Lexer::new(test.input.to_string());
+            let mut parser = parser::Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+
+            assert_eq!(
+                program.statements.len(),
+                1,
+                "program does not contain {} statements. got = {}",
+                1,
+                program.statements.len()
+            );
+
+            let Some(expr_stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+                panic!("program.statements[0] is not ast::ExpressionStatement");
+            };
+
+            let Some(expression) = &expr_stmt.expression else {
+                panic!("ExpressionStatement has no expression");
+            };
+
+            let Some(prefix_expression) = expression.as_any().downcast_ref::<PrefixExpression>() else {
+                panic!("expression is not ast::PrefixExpression. got = {:?}", expression);
+            };
+
+            assert_eq!(
+                prefix_expression.operator,
+                test.operator,
+                "prefix_expression.operator is not {}. got = {}",
+                test.operator,
+                prefix_expression.operator
+            );
+            
+            if !test_integer_literal(&*prefix_expression.right, test.integer_value) {
+                panic!("prefix_expression.right is not {}. got = {:?}", test.integer_value, prefix_expression.right)
+            }
+
+        }
+
+    }
+
+    fn test_integer_literal(expr: &dyn Expression, value: i64) -> bool {
+        let Some(int_literal) = expr.as_any().downcast_ref::<IntegerLiteral>() else {
+            eprintln!("expr is not ast::IntegerLiteral. got = {:?}", expr);
+            return false
+        };
+
+        if int_literal.value != value {
+            eprintln!("int_literal is not {}. got = {}", value, int_literal.value);
+            return false
+        };
+
+        if int_literal.token_literal() != value.to_string() {
+            eprintln!("int_literal.token_literal() is not {}. got = {}", value, int_literal.token_literal());
+            return  false
+        }
+
+        return true
     }
 
 }
