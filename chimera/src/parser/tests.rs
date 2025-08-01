@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::ast::{Expression, ExpressionStatement, Identifier, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
+    use crate::ast::ast::{Expression, ExpressionStatement, Identifier, IntegerLiteral, LetStatement, Node, PrefixExpression, InfixExpression, ReturnStatement, Statement};
     use crate::lexer::lexer;
     use crate::parser::parser::{self, Parser};
 
@@ -280,6 +280,114 @@ mod tests {
         }
 
         return true
+    }
+
+    #[test]
+    fn test_parsing_infix_expressions() {
+        struct InfixTest {
+            input: &'static str,
+            left_value: i64,
+            operator: &'static str,
+            right_value: i64,
+        }
+
+        let infix_tests: Vec<InfixTest> = vec![
+            InfixTest{input: "5 + 5", left_value: 5, operator: "+", right_value: 5},
+            InfixTest{input: "5 - 5", left_value: 5, operator: "-", right_value: 5},
+            InfixTest{input: "5 * 5", left_value: 5, operator: "*", right_value: 5},
+            InfixTest{input: "5 / 5", left_value: 5, operator: "/", right_value: 5},
+            InfixTest{input: "5 > 5", left_value: 5, operator: ">", right_value: 5},
+            InfixTest{input: "5 < 5", left_value: 5, operator: "<", right_value: 5},
+            InfixTest{input: "5 == 5", left_value: 5, operator: "==", right_value: 5},
+            InfixTest{input: "5 != 5", left_value: 5, operator: "!=", right_value: 5},
+        ];
+
+        for test in infix_tests.iter(){
+            let lexer = lexer::Lexer::new(test.input.to_string());
+            let mut parser = parser::Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+
+            assert_eq!(
+                program.statements.len(),
+                1,
+                "program does not contain {} statement. got = {}",
+                1,
+                program.statements.len()
+            );
+
+            let Some(expr_stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+                panic!("program.statements[0] is not ast::ExpressionStatement");
+            };
+
+            let Some(expression) = &expr_stmt.expression else {
+                panic!("ExpressionStatement has no expression");
+            };
+
+            let Some(infix_expression) = expression.as_any().downcast_ref::<InfixExpression>() else {
+                panic!("expression is not ast::InfixExpression. got = {:?}", expression);
+            };
+
+            if !test_integer_literal(&*infix_expression.left, test.left_value) {
+                panic!("infix_expression.left is not {}. got = {:?}", test.left_value, infix_expression.left)
+            }
+
+            assert_eq!(
+                infix_expression.operator,
+                test.operator,
+                "infix_expression.operator is not {}. got = {}",
+                test.operator,
+                infix_expression.operator
+            );
+
+            if !test_integer_literal(&*infix_expression.right, test.right_value) {
+                panic!("infix_expression.right is not {}. got = {:?}", test.right_value, infix_expression.right)
+            }
+            
+        }
+
+    }
+
+    #[test]
+    fn test_operator_precedence_parsing() {
+        struct PrecedenceTest {
+            input: &'static str,
+            expected: &'static str,
+        }
+
+        let precedence_tests: Vec<PrecedenceTest> = vec![
+            PrecedenceTest{input: "-a * b", expected: "((-a) * b)"},
+            PrecedenceTest{input: "!-a", expected: "(!(-a))"},
+            PrecedenceTest{input: "a + b + c", expected: "((a + b) + c)"},
+            PrecedenceTest{input: "a + b - c", expected: "((a + b) - c)"},
+            PrecedenceTest{input: "a * b * c", expected: "((a * b) * c)"},
+            PrecedenceTest{input: "a * b / c", expected: "((a * b) / c)"},
+            PrecedenceTest{input: "a + b / c", expected: "(a + (b / c))"},
+            PrecedenceTest{input: "a + b * c + d / e - f", expected: "(((a + (b * c)) + (d / e)) - f)"},
+            PrecedenceTest{input: "3 + 4; -5 * 5", expected: "(3 + 4)((-5) * 5)"},
+            PrecedenceTest{input: "5 > 4 == 3 < 4", expected: "((5 > 4) == (3 < 4))"},
+            PrecedenceTest{input: "5 < 4 != 3 > 4", expected: "((5 < 4) != (3 > 4))"},
+            PrecedenceTest{input: "3 + 4 * 5 == 3 * 1 + 4 * 5", expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+        ];
+
+        for test in precedence_tests.iter() {
+            let lexer = lexer::Lexer::new(test.input.to_string());
+            let mut parser = parser::Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+
+            let parsed_string = program.string();
+            
+            assert_eq!(
+                parsed_string,
+                test.expected,
+                "expected = {}, got = {}",
+                test.expected,
+                parsed_string
+            )
+        }
     }
 
 }

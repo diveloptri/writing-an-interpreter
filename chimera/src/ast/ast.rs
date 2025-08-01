@@ -192,7 +192,7 @@ impl Node for PrefixExpression {
     }
 
     fn string(&self) -> String {
-        format!("{} {}", self.operator, self.right.string())
+        format!("({}{})", self.operator, self.right.string())
     }
 }
 
@@ -215,7 +215,7 @@ impl Node for InfixExpression {
     }
 
     fn string(&self) -> String {
-        format!("{} {} {}", self.left.string(), self.operator, self.right.string())
+        format!("({} {} {})", self.left.string(), self.operator, self.right.string())
     }
 }
 
