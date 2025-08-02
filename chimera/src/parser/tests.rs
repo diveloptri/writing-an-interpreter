@@ -1,117 +1,107 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::ast::{Expression, ExpressionStatement, Identifier, IntegerLiteral, LetStatement, Node, PrefixExpression, InfixExpression, ReturnStatement, Statement};
+    use crate::ast::ast::{Boolean, Expression, ExpressionStatement, Identifier, InfixExpression, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
     use crate::lexer::lexer;
     use crate::parser::parser::{self, Parser};
 
-    fn check_parser_errors(parser: &Parser) {
-        let errors = parser.errors();
-        if errors.len() == 0 {
-            return;
-        }
-
-        println!("parser has {} errors", errors.len());
-
-        errors.iter().for_each(|msg| println!("parser error: {}", msg));
-        panic!();
+    #[derive(Debug, Clone, PartialEq)]
+    enum TestValue {
+        Integer(i64),
+        Boolean(bool),
+        String(String),
     }
-
 
     #[test]
     fn test_let_statements(){
-        let input = String::from(
-            r#"
-            let x = 5;
-            let y = 10;
-            let foobar = 838383;
-            "#
-        );
-
-        let lexer = lexer::Lexer::new(input);
-        let mut parser = parser::Parser::new(lexer);
-        let program = parser.parse_program();
-        
-        check_parser_errors(&parser);
-
-        if program.statements.len() != 3 {
-            panic!("program.statements does not contain 3 statements. got = {}", program.statements.len());
+        struct LetStatementTest {
+            input: &'static str,
+            expected_identifier: &'static str,
+            expected_value: TestValue,
         }
 
-        let tests = vec![
-            "x",
-            "y",
-            "foobar"
+        let let_statement_test: Vec<LetStatementTest> = vec![
+            LetStatementTest{input: "let x = 5;", expected_identifier: "x", expected_value: TestValue::Integer(5)},
+            LetStatementTest{input: "let y = 10;", expected_identifier: "y", expected_value: TestValue::Integer(10)},
+            LetStatementTest{input: "let foobar = y;", expected_identifier: "foobar", expected_value: TestValue::String("y".to_string())},
         ];
 
-        for (i, expected_name) in tests.iter().enumerate() {
-            let stmt = &program.statements[i];
-            if !test_let_statement(&**stmt, expected_name) {
+        for test in let_statement_test.iter(){
+            let lexer = lexer::Lexer::new(test.input.to_string());
+            let mut parser = parser::Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+
+            assert_eq!(
+                program.statements.len(),
+                1,
+                "program does not contain {} statements. got = {}",
+                1,
+                program.statements.len()
+            );
+
+            if !test_let_statement(&*program.statements[0],test.expected_identifier) {
                 panic!();
-            } 
+            }
 
+            let Some(let_stmt) = program.statements[0].as_any().downcast_ref::<LetStatement>() else {
+                panic!("expr_stmt is not ast::LetStatement")
+            };
+
+            if !test_literal_expression(&**let_stmt.value.as_ref().unwrap(), &test.expected_value){
+                panic!();
+            }
         }
-
     }
-
-    fn test_let_statement(stmt: &dyn Statement, name: &str) -> bool {
-        let Some(let_stmt) = stmt.as_any().downcast_ref::<LetStatement>() else {
-            eprintln!("stmt is not LetStatement");
-            return false
-        };
-
-        eprintln!("{}", let_stmt.token_literal());
-        if let_stmt.token_literal() != "let" {
-            dbg!("stmt.token_literal not 'let'. got = {}", let_stmt.token_literal());
-            return false
-        }
-
-        if let_stmt.name.value != name {
-            eprintln!("let_stmt.name.value is not ‘{}‘. got = {}", name, let_stmt.name.value);
-            return false
-        }
-
-        if let_stmt.name.token_literal() != name {
-            eprintln!("let_stmt.name.token_literal() is not ‘{}‘, got = {}", name, let_stmt.name.token_literal());
-            return false
-        }
-        return true
-    }
-    
-
-
 
     #[test]
     fn test_return_statements() {
-        let input = String::from(
-            r#"
-            return 5;
-            return 10;
-            return 999233;
-            "#);
-
-        let lexer = lexer::Lexer::new(input);
-        let mut parser = parser::Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parser_errors(&parser);
-
-        if program.statements.len() != 3 {
-            panic!("program.statements does not contain 3 statements. got = {}", program.statements.len());
+        struct ReturnStatementTest{
+            input: &'static str,
+            expected_value: TestValue 
         }
 
-        for stmt in program.statements {
-            let Some(return_stmt) = stmt.as_any().downcast_ref::<ReturnStatement>() else {
-                eprintln!("stmt is not ast::ReturnStatement");
-                continue;
+        let return_tests: Vec<ReturnStatementTest> = vec![
+            ReturnStatementTest{input: "return 5;", expected_value: TestValue::Integer(5)},
+            ReturnStatementTest{input: "return 10;", expected_value: TestValue::Integer(10)},
+            ReturnStatementTest{input: "return foobar;", expected_value: TestValue::String("foobar".to_string())},
+        ];
+
+        for test in return_tests.iter() {
+            let lexer = lexer::Lexer::new(test.input.to_string());
+            let mut parser = parser::Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+
+            assert_eq!(
+                program.statements.len(),
+                1,
+                "program does not contain {} statements. got = {}",
+                1,
+                program.statements.len()
+            );
+
+            let Some(return_stmt) = program.statements[0].as_any().downcast_ref::<ReturnStatement>() else {
+                panic!("program.statements[0] is not ast::ReturnStatement");
             };
 
             assert_eq!(
                 return_stmt.token_literal(),
                 "return",
-                "return.stmt.token_literal is not 'return', got = {}",
+                "return_stmt.token_literal is not 'return'. got = {}",
                 return_stmt.token_literal()
             );
-        }
+
+            let Some(return_value) = &return_stmt.return_value else {
+                panic!("ReturnStatement has no return_value");
+            };
+
+            if !test_literal_expression(&**return_value, &test.expected_value) {
+                panic!();
+            }
+        } 
+
     }
 
     #[test]
@@ -208,16 +198,67 @@ mod tests {
     }
 
     #[test]
+    fn test_boolean_expression() {
+        struct BooleanTest {
+            input: &'static str,
+            expected_boolean: bool
+        }
+
+        let boolean_tests: Vec<BooleanTest> = vec![
+            BooleanTest{input: "true;", expected_boolean: true},
+            BooleanTest{input: "false;", expected_boolean: false},
+        ];
+
+        for test in boolean_tests.iter() {
+            let lexer = lexer::Lexer::new(test.input.to_string());
+            let mut parser = parser::Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+
+            assert_eq!(
+                program.statements.len(),
+                1,
+                "program does not contain {} statements. got = {}",
+                1,
+                program.statements.len()
+            );
+
+            let Some(expr_stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+                panic!("program.statements[0] is not ast::ExpressionStatement");
+            };
+
+            let Some(expression) = &expr_stmt.expression else {
+                panic!("ExpressionStatement has no expression");
+            };
+
+            let Some(boolean) = expression.as_any().downcast_ref::<Boolean>() else {
+                panic!("expression is not ast::Boolean. got = {:?}", expression);
+            };
+
+            assert_eq!(
+                boolean.value,
+                test.expected_boolean,
+                "boolean.value is not {}. got = {}",
+                test.expected_boolean,
+                boolean.value
+            );
+        }
+    }
+
+    #[test]
     fn test_parsing_prefix_expression() {
         struct PrefixTest {
             input: &'static str,
             operator: &'static str,
-            integer_value: i64,
+            value: TestValue,
         }
 
         let prefix_tests: Vec<PrefixTest> = vec![
-            PrefixTest{input: "!5", operator: "!", integer_value: 5},
-            PrefixTest{input: "-15", operator: "-", integer_value: 15},
+            PrefixTest{input: "!5", operator: "!", value: TestValue::Integer(5)},
+            PrefixTest{input: "-15", operator: "-", value: TestValue::Integer(15)},
+            PrefixTest{input: "!true;", operator: "!", value: TestValue::Boolean(true)},
+            PrefixTest{input: "!false;", operator: "!", value: TestValue::Boolean(false)},
         ];
 
         for test in prefix_tests.iter(){
@@ -255,51 +296,34 @@ mod tests {
                 prefix_expression.operator
             );
             
-            if !test_integer_literal(&*prefix_expression.right, test.integer_value) {
-                panic!("prefix_expression.right is not {}. got = {:?}", test.integer_value, prefix_expression.right)
+            if !test_literal_expression(&*prefix_expression.right, &test.value) {
+                panic!();
             }
-
         }
 
-    }
-
-    fn test_integer_literal(expr: &dyn Expression, value: i64) -> bool {
-        let Some(int_literal) = expr.as_any().downcast_ref::<IntegerLiteral>() else {
-            eprintln!("expr is not ast::IntegerLiteral. got = {:?}", expr);
-            return false
-        };
-
-        if int_literal.value != value {
-            eprintln!("int_literal is not {}. got = {}", value, int_literal.value);
-            return false
-        };
-
-        if int_literal.token_literal() != value.to_string() {
-            eprintln!("int_literal.token_literal() is not {}. got = {}", value, int_literal.token_literal());
-            return  false
-        }
-
-        return true
     }
 
     #[test]
     fn test_parsing_infix_expressions() {
         struct InfixTest {
             input: &'static str,
-            left_value: i64,
+            left_value: TestValue,
             operator: &'static str,
-            right_value: i64,
+            right_value: TestValue,
         }
 
         let infix_tests: Vec<InfixTest> = vec![
-            InfixTest{input: "5 + 5", left_value: 5, operator: "+", right_value: 5},
-            InfixTest{input: "5 - 5", left_value: 5, operator: "-", right_value: 5},
-            InfixTest{input: "5 * 5", left_value: 5, operator: "*", right_value: 5},
-            InfixTest{input: "5 / 5", left_value: 5, operator: "/", right_value: 5},
-            InfixTest{input: "5 > 5", left_value: 5, operator: ">", right_value: 5},
-            InfixTest{input: "5 < 5", left_value: 5, operator: "<", right_value: 5},
-            InfixTest{input: "5 == 5", left_value: 5, operator: "==", right_value: 5},
-            InfixTest{input: "5 != 5", left_value: 5, operator: "!=", right_value: 5},
+            InfixTest{input: "5 + 5", left_value: TestValue::Integer(5), operator: "+", right_value: TestValue::Integer(5)},
+            InfixTest{input: "5 - 5", left_value: TestValue::Integer(5), operator: "-", right_value: TestValue::Integer(5)},
+            InfixTest{input: "5 * 5", left_value: TestValue::Integer(5), operator: "*", right_value: TestValue::Integer(5)},
+            InfixTest{input: "5 / 5", left_value: TestValue::Integer(5), operator: "/", right_value: TestValue::Integer(5)},
+            InfixTest{input: "5 > 5", left_value: TestValue::Integer(5), operator: ">", right_value: TestValue::Integer(5)},
+            InfixTest{input: "5 < 5", left_value: TestValue::Integer(5), operator: "<", right_value: TestValue::Integer(5)},
+            InfixTest{input: "5 == 5", left_value: TestValue::Integer(5), operator: "==", right_value: TestValue::Integer(5)},
+            InfixTest{input: "5 != 5", left_value: TestValue::Integer(5), operator: "!=", right_value: TestValue::Integer(5)},
+            InfixTest{input: "true == true", left_value: TestValue::Boolean(true), operator: "==", right_value: TestValue::Boolean(true)},
+            InfixTest{input: "true != false", left_value: TestValue::Boolean(true), operator:  "!=", right_value: TestValue::Boolean(false)},
+            InfixTest{input: "false == false", left_value: TestValue::Boolean(false), operator: "==", right_value: TestValue::Boolean(false)},
         ];
 
         for test in infix_tests.iter(){
@@ -321,32 +345,10 @@ mod tests {
                 panic!("program.statements[0] is not ast::ExpressionStatement");
             };
 
-            let Some(expression) = &expr_stmt.expression else {
-                panic!("ExpressionStatement has no expression");
-            };
-
-            let Some(infix_expression) = expression.as_any().downcast_ref::<InfixExpression>() else {
-                panic!("expression is not ast::InfixExpression. got = {:?}", expression);
-            };
-
-            if !test_integer_literal(&*infix_expression.left, test.left_value) {
-                panic!("infix_expression.left is not {}. got = {:?}", test.left_value, infix_expression.left)
+            if !test_infix_expression(&**expr_stmt.expression.as_ref().unwrap(), test.left_value.clone(), test.operator, test.right_value.clone()) {
+                panic!();
             }
-
-            assert_eq!(
-                infix_expression.operator,
-                test.operator,
-                "infix_expression.operator is not {}. got = {}",
-                test.operator,
-                infix_expression.operator
-            );
-
-            if !test_integer_literal(&*infix_expression.right, test.right_value) {
-                panic!("infix_expression.right is not {}. got = {:?}", test.right_value, infix_expression.right)
-            }
-            
         }
-
     }
 
     #[test]
@@ -369,6 +371,10 @@ mod tests {
             PrecedenceTest{input: "5 > 4 == 3 < 4", expected: "((5 > 4) == (3 < 4))"},
             PrecedenceTest{input: "5 < 4 != 3 > 4", expected: "((5 < 4) != (3 > 4))"},
             PrecedenceTest{input: "3 + 4 * 5 == 3 * 1 + 4 * 5", expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+            PrecedenceTest{input: "true", expected: "true"},
+            PrecedenceTest{input: "false", expected: "false"},
+            PrecedenceTest{input: "3 > 5 == false", expected: "((3 > 5) == false)"},
+            PrecedenceTest{input: "3 < 5 == true", expected: "((3 < 5) == true)"},
         ];
 
         for test in precedence_tests.iter() {
@@ -388,6 +394,124 @@ mod tests {
                 parsed_string
             )
         }
+    }
+
+    fn test_identifier(expr: &dyn Expression, value: &str) -> bool {
+        let Some(ident) = expr.as_any().downcast_ref::<Identifier>() else {
+            eprintln!("expr is not ast::Identifier. got = {:?}", expr);
+            return false
+        };
+
+        if ident.value != value {
+            eprintln!("ident.token_literal is not {}. got = {}", value, ident.token_literal())
+        }
+
+        return true
+
+    }
+
+    fn test_let_statement(stmt: &dyn Statement, name: &str) -> bool {
+        let Some(let_stmt) = stmt.as_any().downcast_ref::<LetStatement>() else {
+            eprintln!("stmt is not LetStatement");
+            return false
+        };
+
+        if let_stmt.token_literal() != "let" {
+            dbg!("stmt.token_literal not 'let'. got = {}", let_stmt.token_literal());
+            return false
+        }
+
+        if let_stmt.name.value != name {
+            eprintln!("let_stmt.name.value is not ‘{}‘. got = {}", name, let_stmt.name.value);
+            return false
+        }
+
+        if let_stmt.name.token_literal() != name {
+            eprintln!("let_stmt.name.token_literal() is not ‘{}‘, got = {}", name, let_stmt.name.token_literal());
+            return false
+        }
+        return true
+    }
+
+    fn test_infix_expression(expr: &dyn Expression, left: TestValue, operator: &str, right: TestValue) -> bool {
+        let Some(infix_expr) = expr.as_any().downcast_ref::<InfixExpression>() else {
+            eprintln!("expr is not ast::InfixExpression. got = {:?}", expr);
+            return false
+        };
+
+        if !test_literal_expression(&*infix_expr.left, &left) {
+            return false
+        }
+
+        if infix_expr.operator != operator {
+            eprintln!("infix_expr.operator is not {}. got = {}", operator, infix_expr.operator);
+            return false
+        }
+
+        if !test_literal_expression(&*infix_expr.right, &right) {
+            return false
+        }
+
+        return true
+    }
+    
+    fn test_literal_expression(expr: &dyn Expression, expected: &TestValue) -> bool {
+        match expected {
+            TestValue::Integer(val) => return test_integer_literal(expr, *val),
+            TestValue::Boolean(val) => return test_boolean_literal(expr, *val),
+            TestValue::String(val) => return test_identifier(expr, val)
+        }
+    }
+
+    fn test_integer_literal(expr: &dyn Expression, value: i64) -> bool {
+        let Some(int_literal) = expr.as_any().downcast_ref::<IntegerLiteral>() else {
+            eprintln!("expr is not ast::IntegerLiteral. got = {:?}", expr);
+            return false
+        };
+
+        if int_literal.value != value {
+            eprintln!("int_literal is not {}. got = {}", value, int_literal.value);
+            return false
+        };
+
+        if int_literal.token_literal() != value.to_string() {
+            eprintln!("int_literal.token_literal() is not {}. got = {}", value, int_literal.token_literal());
+            return  false
+        }
+
+        return true
+    }
+
+    fn test_boolean_literal(expr: &dyn Expression, value: bool) -> bool {
+        let Some(bool_val) = expr.as_any().downcast_ref::<Boolean>() else {
+            eprintln!("expr is not ast::Boolean. got = {:?}", expr);
+            return false
+        };
+
+        if bool_val.value != value {
+            eprintln!("bool_val.value is not {}. got = {}", value, bool_val.value);
+            return false
+        };
+
+        if bool_val.token_literal() != format!("{}", value) {
+            eprintln!("bool_val.token_literal is not {}. got = {}", value, bool_val.token_literal());
+            return false
+        }
+
+        return true
+    }
+
+
+    fn check_parser_errors(parser: &Parser) {
+        let errors = parser.errors();
+        if errors.len() == 0 {
+            return;
+        }
+
+        println!("parser has {} errors", errors.len());
+
+        errors.iter().for_each(|msg| println!("parser error: {}", msg));
+        panic!();
     }
 
 }

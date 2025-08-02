@@ -26,6 +26,7 @@ pub fn get_precedences() -> HashMap<TokenType, Precedence> {
     map.insert(token::MINUS, Precedence::SUM);
     map.insert(token::SLASH, Precedence::PRODUCT);
     map.insert(token::ASTERISK, Precedence::PRODUCT);
+    map.insert(token::LPAREN, Precedence::CALL);
 
     map
 }
@@ -108,6 +109,13 @@ impl Parser {
         }))
     }
 
+    pub fn parse_boolean(&mut self) -> Option<Box<dyn Expression>> {
+        Some(Box::new(ast::Boolean{
+            token: self.cur_token.clone(),
+            value: self.cur_token_is(token::TRUE),
+        }))
+    }
+
     pub fn errors(&self) -> Vec<String> {
         self.errors.clone()
     }
@@ -176,15 +184,19 @@ impl Parser {
             return None
         }
 
-        let stmt = LetStatement {
+        let mut stmt = LetStatement {
             token: let_token,
             name: name, 
             value: None,
         };
 
-        while !self.cur_token_is(token::SEMICOLON) {
+        self.next_token();
+
+        stmt.value = self.parse_expression(Precedence::LOWEST);
+
+        if self.peek_token_is(token::SEMICOLON) {
             self.next_token();
-        } 
+        }
 
         Some(stmt)
     }
@@ -203,14 +215,16 @@ impl Parser {
     }
 
     pub fn parse_return_statement(&mut self) -> ReturnStatement {
-        let stmt = ReturnStatement{
+        let mut stmt = ReturnStatement{
             token: self.cur_token.clone(),
             return_value: None,
         };
 
         self.next_token();
 
-        while !self.cur_token_is(token::SEMICOLON) {
+        stmt.return_value = self.parse_expression(Precedence::LOWEST);
+
+        if self.peek_token_is(token::SEMICOLON) {
             self.next_token();
         }
 
@@ -222,6 +236,7 @@ impl Parser {
             token::IDENT => self.parse_identifier(),
             token::INT => self.parse_integer_literal(),
             token::BANG | token::MINUS => self.parse_prefix_expression(),
+            token::TRUE | token::FALSE => self.parse_boolean(),
             _ => {
                 self.unsupported_prefix_token_error(&self.cur_token.token_type);
                 return None;
