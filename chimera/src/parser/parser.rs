@@ -116,6 +116,19 @@ impl Parser {
         }))
     }
 
+    pub fn parse_grouped_expression(&mut self) -> Option<Box<dyn Expression
+    >> {
+        self.next_token();
+
+        let expr = self.parse_expression(Precedence::LOWEST);
+
+        if !self.expect_peek(token::RPAREN) {
+            return None
+        }
+
+        return expr
+    }
+
     pub fn errors(&self) -> Vec<String> {
         self.errors.clone()
     }
@@ -237,6 +250,7 @@ impl Parser {
             token::INT => self.parse_integer_literal(),
             token::BANG | token::MINUS => self.parse_prefix_expression(),
             token::TRUE | token::FALSE => self.parse_boolean(),
+            token::LPAREN => self.parse_grouped_expression(),
             _ => {
                 self.unsupported_prefix_token_error(&self.cur_token.token_type);
                 return None;

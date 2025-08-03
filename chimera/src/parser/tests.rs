@@ -371,10 +371,14 @@ mod tests {
             PrecedenceTest{input: "5 > 4 == 3 < 4", expected: "((5 > 4) == (3 < 4))"},
             PrecedenceTest{input: "5 < 4 != 3 > 4", expected: "((5 < 4) != (3 > 4))"},
             PrecedenceTest{input: "3 + 4 * 5 == 3 * 1 + 4 * 5", expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+            PrecedenceTest{input: "1 + (2 + 3) + 4", expected: "((1 + (2 + 3)) + 4)"},
+            PrecedenceTest{input: "(5 + 5) * 2", expected: "((5 + 5) * 2)"},
+            PrecedenceTest{input: "2 / (5 + 5)", expected: "(2 / (5 + 5))"},
+            PrecedenceTest{input: "-(5 + 5)", expected: "(-(5 + 5))"},
             PrecedenceTest{input: "true", expected: "true"},
             PrecedenceTest{input: "false", expected: "false"},
             PrecedenceTest{input: "3 > 5 == false", expected: "((3 > 5) == false)"},
-            PrecedenceTest{input: "3 < 5 == true", expected: "((3 < 5) == true)"},
+            PrecedenceTest{input: "!(true == true)", expected: "(!(true == true))"},
         ];
 
         for test in precedence_tests.iter() {
