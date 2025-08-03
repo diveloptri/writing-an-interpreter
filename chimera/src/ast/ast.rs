@@ -7,7 +7,7 @@ pub trait Node {
     fn string(&self) -> String;
 } 
 
-pub trait Statement: Node + Any {
+pub trait Statement: Node + Any + Debug {
     fn statement_node(&self);
     fn as_any(&self) -> &dyn Any;
 }
@@ -243,5 +243,59 @@ impl Node for Boolean {
 impl Expression for Boolean {
     fn expression_node(&self) {}
     fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Debug)]
+pub struct BlockStatement {
+    pub token: Token,
+    pub statements: Vec<Box<dyn Statement>>
+}
+
+impl Expression for BlockStatement {
+    fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+impl Node for BlockStatement {
+    fn token_literal(&self) -> String{
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        self.statements
+            .iter()
+            .map(|s| s.string())
+            .collect::<Vec<String>>()
+            .join("")
+    }
+}
+
+#[derive(Debug)]
+pub struct IfExpression {
+    pub token: Token,
+    pub condition: Box<dyn Expression>,
+    pub consequence: BlockStatement,
+    pub alternative: Option<BlockStatement>,
+}
+
+impl Expression for IfExpression {
+    fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+impl Node for IfExpression {
+    fn token_literal(&self) -> String{
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        let mut result = format!("if {} {}", self.condition.string(), self.consequence.string());
+
+        if let Some(alternative) = &self.alternative {
+            result.push_str(&format!("else {}", alternative.string()));
+        }
+
+        result 
+    }
 }
 

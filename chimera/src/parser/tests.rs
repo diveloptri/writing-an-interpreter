@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::ast::{Boolean, Expression, ExpressionStatement, Identifier, InfixExpression, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
+    use crate::ast::ast::{Boolean, Expression, ExpressionStatement, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
     use crate::lexer::lexer;
     use crate::parser::parser::{self, Parser};
 
@@ -398,6 +398,56 @@ mod tests {
                 parsed_string
             )
         }
+    }
+
+    #[test]
+    fn test_if_expression() {
+        let input = String::from("if (x < y) { x }");
+
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parser_errors(&parser);
+
+        assert_eq!(
+            program.statements.len(),
+            1,
+            "program does not contain {} statements. got = {}",
+            1,
+            program.statements.len()
+        );
+
+        let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+            panic!("program.statements[0] is not ast::ExpressionStatement");
+        };
+
+        let Some(if_expr) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<IfExpression>() else {
+            panic!("expr_stmt.expression is not ast::IfExpression. got = {:?}",
+        stmt.expression);
+        };
+
+        if !test_infix_expression(if_expr.condition.as_ref(), TestValue::String("x".to_string()), "<", TestValue::String("y".to_string())) {
+            panic!();
+        }
+
+        if if_expr.consequence.statements.len() != 1 {
+            eprintln!("consequence is not 1 statement. gor = {:?}", if_expr.consequence.statements.len());
+        }
+
+        let Some(expr_stmt) = if_expr.consequence.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+            panic!("statements[0] is not ast::ExpressionStatement. got = {:?}", if_expr.consequence.statements[0]);
+        };
+
+        assert_eq!(
+            test_identifier(&**expr_stmt.expression.as_ref().unwrap(), "x"),
+            true
+        );
+
+        if if_expr.alternative.is_some() {
+            panic!("if_expr.alternative.statements was not None. got = {:?}", if_expr.alternative);
+        }
+
     }
 
     fn test_identifier(expr: &dyn Expression, value: &str) -> bool {

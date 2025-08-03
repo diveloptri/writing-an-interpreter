@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::lexer::lexer::Lexer;
-use crate::ast::ast::{self, Expression, ExpressionStatement, Identifier, InfixExpression, IntegerLiteral, LetStatement, PrefixExpression, Program, ReturnStatement, Statement};
+use crate::ast::ast::{self, BlockStatement, Expression, ExpressionStatement, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, PrefixExpression, Program, ReturnStatement, Statement};
 use crate::token::token::{self, Token, TokenType};
 
 
@@ -116,18 +116,76 @@ impl Parser {
         }))
     }
 
-    pub fn parse_grouped_expression(&mut self) -> Option<Box<dyn Expression
-    >> {
+    pub fn parse_grouped_expression(&mut self) -> Option<Box<dyn Expression>> {
         self.next_token();
 
-        let expr = self.parse_expression(Precedence::LOWEST);
+        let expr = self.parse_expression(Precedence::LOWEST)?;
 
         if !self.expect_peek(token::RPAREN) {
             return None
         }
 
-        return expr
+        Some(expr)
     }
+
+    pub fn parse_if_expression(&mut self) -> Option<Box<dyn Expression>> {
+        let cur_token = self.cur_token.clone();
+
+        if !self.expect_peek(token::LPAREN) {
+            return None
+        }
+
+        self.next_token();
+
+        let condition = self.parse_expression(Precedence::LOWEST)?;
+
+        if !self.expect_peek(token::RPAREN) {
+            return None
+        }
+
+        if !self.expect_peek(token::LBRACE) {
+            return None
+        }
+
+        let consequence = self.parse_block_statement();
+        let alternative = if self.peek_token_is(token::ELSE) {
+            self.next_token();
+            self.parse_else_block()
+        } else {
+            None
+        };
+
+        Some(Box::new(IfExpression{
+            token: cur_token,
+            condition: condition,
+            consequence: consequence,
+            alternative: alternative
+        }))
+    }
+
+    pub fn parse_block_statement(&mut self) -> BlockStatement {
+        let token = self.cur_token.clone();
+        self.next_token();
+
+        let mut statements = Vec::new();
+
+        while !self.cur_token_is(token::RBRACE) && !self.cur_token_is(token::EOF) {
+            
+            if let Some(stmt) = self.parse_statement() {
+                statements.push(stmt);
+            }
+
+            self.next_token();
+        }
+        BlockStatement { token, statements }
+    }
+
+    pub fn parse_else_block(&mut self) -> Option<BlockStatement> {
+        if !self.expect_peek(token::LBRACE) {
+            return None
+        }
+        Some(self.parse_block_statement())
+    } 
 
     pub fn errors(&self) -> Vec<String> {
         self.errors.clone()
@@ -251,6 +309,7 @@ impl Parser {
             token::BANG | token::MINUS => self.parse_prefix_expression(),
             token::TRUE | token::FALSE => self.parse_boolean(),
             token::LPAREN => self.parse_grouped_expression(),
+            token::IF => self.parse_if_expression(),
             _ => {
                 self.unsupported_prefix_token_error(&self.cur_token.token_type);
                 return None;
