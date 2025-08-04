@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::lexer::lexer::Lexer;
-use crate::ast::ast::{self, BlockStatement, Expression, ExpressionStatement, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, PrefixExpression, Program, ReturnStatement, Statement};
+use crate::ast::ast::{self, BlockStatement, Expression, ExpressionStatement, FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, PrefixExpression, Program, ReturnStatement, Statement};
 use crate::token::token::{self, Token, TokenType};
 
 
@@ -132,6 +132,7 @@ impl Parser {
         let cur_token = self.cur_token.clone();
 
         if !self.expect_peek(token::LPAREN) {
+            self.errors.push("Expected '(' after 'if' keyword".to_string());
             return None
         }
 
@@ -140,10 +141,12 @@ impl Parser {
         let condition = self.parse_expression(Precedence::LOWEST)?;
 
         if !self.expect_peek(token::RPAREN) {
+            self.errors.push("Expected ')' after if condition".to_string());
             return None
         }
 
         if !self.expect_peek(token::LBRACE) {
+            self.errors.push("Expected '{' after if condition".to_string());
             return None
         }
 
@@ -182,6 +185,7 @@ impl Parser {
 
     pub fn parse_else_block(&mut self) -> Option<BlockStatement> {
         if !self.expect_peek(token::LBRACE) {
+            self.errors.push("Expected '{' after 'else' keyword".to_string());
             return None
         }
         Some(self.parse_block_statement())
@@ -274,7 +278,7 @@ impl Parser {
 
     pub fn parse_integer_literal(&mut self) -> Option<Box<dyn Expression>> {
         let int_from_literal = self.cur_token.literal.parse::<i64>()
-            .map_err(|n| self.errors.push(format!("could not parse {} as integer", n)))
+            .map_err(|_| self.errors.push(format!("Invalid integer literal: '{}'", self.cur_token.literal)))
             .ok()?;
 
         Some(Box::new(
@@ -302,6 +306,61 @@ impl Parser {
         stmt
     }
 
+    pub fn parse_function_literal(&mut self) -> Option<Box<dyn Expression>> {
+        let cur_token = self.cur_token.clone();
+
+        if !self.expect_peek(token::LPAREN) {
+            self.errors.push("Expected '(' after 'fn' keyword".to_string());
+            return None
+        };
+
+        let parameters = self.parse_function_parameters()?;
+
+        if !self.expect_peek(token::LBRACE) {
+            self.errors.push("Expected '{' after function parameters".to_string());
+            return None
+        };
+
+        let body = self.parse_block_statement();
+
+        Some(Box::new(
+            FunctionLiteral{
+                token: cur_token,
+                parameters: parameters,
+                body: body
+        }))
+    }
+
+    pub fn parse_function_parameters(&mut self) -> Option<Vec<Identifier>> {
+        let mut identifiers = Vec::new();
+
+        if self.peek_token_is(token::RPAREN) {
+            self.next_token();
+            return Some(identifiers);
+        }
+
+        self.next_token();
+
+        identifiers.push(self.create_identifier_from_current_token());
+
+        while self.peek_token_is(token::COMMA) {
+            self.next_token();
+            self.next_token();
+            identifiers.push(self.create_identifier_from_current_token());
+        }
+
+        if !self.expect_peek(token::RPAREN) {
+            self.errors.push("Expected ')' after function parameters".to_string());
+            return None
+        }
+
+        Some(identifiers)
+    }
+
+    fn create_identifier_from_current_token(&self) -> Identifier {
+        Identifier { token: self.cur_token.clone(), value: self.cur_token.literal.clone() }
+    }
+
     pub fn parse_expression(&mut self, precedence: Precedence) -> Option<Box<dyn Expression>> {
         let mut left_exp = match self.cur_token.token_type {
             token::IDENT => self.parse_identifier(),
@@ -310,6 +369,7 @@ impl Parser {
             token::TRUE | token::FALSE => self.parse_boolean(),
             token::LPAREN => self.parse_grouped_expression(),
             token::IF => self.parse_if_expression(),
+            token::FUNCTION => self.parse_function_literal(),
             _ => {
                 self.unsupported_prefix_token_error(&self.cur_token.token_type);
                 return None;

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::ast::{Boolean, Expression, ExpressionStatement, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
+    use crate::ast::ast::{Boolean, Expression, ExpressionStatement, FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
     use crate::lexer::lexer;
     use crate::parser::parser::{self, Parser};
 
@@ -450,6 +450,111 @@ mod tests {
 
     }
 
+    #[test]
+    fn test_function_literal_parsing() {
+        let input = String::from("fn(x, y) { x + y; }");
+
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parser_errors(&parser);
+
+        assert_eq!(
+            program.statements.len(),
+            1,
+            "program does not contain {} statements. got = {}",
+            1,
+            program.statements.len()
+        );
+
+        let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+            panic!("program.statements[0] is not ast::ExpressionStatement");
+        };
+
+        let Some(function_literal) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() else {
+            panic!("stmt.expression is not ast::FunctionLiteral. got = {:?}", stmt.expression);
+        };
+
+        assert_eq!(
+            function_literal.parameters.len(),
+            2,
+            "function literal parameters are wrong. want 2, got = {}",
+            function_literal.parameters.len()
+        );
+
+        let expected_params = ["x", "y"];
+        for (param, expected) in function_literal.parameters.iter().zip(&expected_params) {
+            assert!(
+                test_literal_expression(param, &TestValue::String(expected.to_string()))
+            );
+        }
+
+        assert_eq!(
+            function_literal.body.statements.len(),
+            1,
+            "function_literal.body.statements has not 1 statements. got = {}",
+            function_literal.body.statements.len()
+        );
+
+        let Some(body_stmt) = function_literal.body.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+            panic!("function_literal.body.statements is not ast::ExpressionStatement. got = {:?}", function_literal.body.statements[0]);
+        };
+
+        assert_eq!(
+            test_infix_expression(&**body_stmt.expression.as_ref().unwrap(), TestValue::String("x".to_string()), "+", TestValue::String("y".to_string())),
+            true
+        );
+    }
+
+    #[test]
+    fn test_function_parameter_parsing() {
+        struct ParameterTest {
+            input: &'static str,
+            expected_parameter: Vec<String>
+        }
+
+        let parameter_test: Vec<ParameterTest> = vec![
+            ParameterTest{input: "fn() {};", expected_parameter: Vec::new()},
+            ParameterTest{input: "fn(x) {};", expected_parameter: vec!["x".to_string()]},
+            ParameterTest{input: "fn(x, y, z) {};", expected_parameter: vec!["x".to_string(), "y".to_string(), "z".to_string()]},
+        ];
+
+        for test in parameter_test.iter(){
+            let lexer = lexer::Lexer::new(test.input.to_string());
+            let mut parser = parser::Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+
+            let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+                panic!("program.statements[0] is not ast::ExpressionStatement");
+            };
+
+            let Some(function_literal) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() else {
+                panic!("stmt.expression is not ast::FunctionLiteral. got = {:?}", stmt.expression);
+            };
+
+            assert_eq!(
+                function_literal.parameters.len(),
+                test.expected_parameter.len(),
+                "length parameters wrong. want = {}, got = {}",
+                test.expected_parameter.len(),
+                function_literal.parameters.len()
+            );
+
+            for (param, expected) in function_literal.parameters
+                .iter()
+                .zip(test.expected_parameter.clone()){
+                    assert!(
+                        test_literal_expression(param, &TestValue::String(expected.to_string())),
+                        "Parameter mismatch: expected {}, got {:?}", expected, param
+                    );
+            }
+        } 
+    }
+
+    // Helper
     fn test_identifier(expr: &dyn Expression, value: &str) -> bool {
         let Some(ident) = expr.as_any().downcast_ref::<Identifier>() else {
             eprintln!("expr is not ast::Identifier. got = {:?}", expr);
