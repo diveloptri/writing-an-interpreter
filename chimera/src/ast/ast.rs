@@ -322,3 +322,27 @@ impl Node for FunctionLiteral {
         format!("{}({}){}", self.token_literal(), parameter, self.body.string())
     }
 }
+
+#[derive(Debug)]
+pub struct CallExpression {
+    pub token: Token,
+    pub function: Box<dyn Expression>,
+    pub arguments: Vec<Box<dyn Expression>>
+}
+
+impl Expression for CallExpression {
+    fn expression_node(&self) {}
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+impl Node for CallExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        let args = self.arguments.iter().map(|args| args.string()).collect::<Vec<String>>().join(", ");
+
+        format!("{}({})", self.function.string(), args) 
+    }
+}

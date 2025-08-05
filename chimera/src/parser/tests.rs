@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::ast::{Boolean, Expression, ExpressionStatement, FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
+    use crate::ast::ast::{Boolean, CallExpression, Expression, ExpressionStatement, FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
     use crate::lexer::lexer;
     use crate::parser::parser::{self, Parser};
 
@@ -379,6 +379,9 @@ mod tests {
             PrecedenceTest{input: "false", expected: "false"},
             PrecedenceTest{input: "3 > 5 == false", expected: "((3 > 5) == false)"},
             PrecedenceTest{input: "!(true == true)", expected: "(!(true == true))"},
+            PrecedenceTest{input: "a + add(b * c) + d", expected: "((a + add((b * c))) + d)"},
+            PrecedenceTest{input: "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", expected: "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
+            PrecedenceTest{input: "add(a + b + c * d / f + g)", expected: "add((((a + b) + ((c * d) / f)) + g))"},
         ];
 
         for test in precedence_tests.iter() {
@@ -548,8 +551,118 @@ mod tests {
                 .zip(test.expected_parameter.clone()){
                     assert!(
                         test_literal_expression(param, &TestValue::String(expected.to_string())),
-                        "Parameter mismatch: expected {}, got {:?}", expected, param
+                        "Parameter mismatch: expected {}, got = {:?}", expected, param
                     );
+            }
+        } 
+    }
+
+    #[test]
+    fn test_call_expression_parsing() {
+        let input = String::from("add(1, 2 * 3, 4 + 5);");
+
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parser_errors(&parser);
+
+        assert_eq!(
+            program.statements.len(),
+            1,
+            "program does not contain {} statements. got = {}",
+            1,
+            program.statements.len()
+        );
+
+        let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+            panic!("program.statements[0] is not ast::ExpressionStatement");
+        };
+
+        let Some(call_expr) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<CallExpression>() else {
+            panic!("stmt.expression is not ast::CallExpression. got = {:?}", stmt.expression);
+        };
+
+        assert_eq!(
+            test_identifier(&*call_expr.function.as_ref(), "add"),
+            true
+        );
+
+        assert_eq!(
+            call_expr.arguments.len(),
+            3,
+            "wrong length of arguments. got = {}",
+            call_expr.arguments.len()
+        );
+
+        assert!(
+            test_literal_expression(&*call_expr.arguments[0], &TestValue::Integer(1)),
+            "Argument mismatch: expected {}, got = {:?}", 1, call_expr.arguments[0]
+        );
+
+        assert_eq!(
+            test_infix_expression(&*call_expr.arguments[1], TestValue::Integer(2), "*", TestValue::Integer(3)),
+            true
+        );
+
+        assert_eq!(
+            test_infix_expression(&*call_expr.arguments[2], TestValue::Integer(4), "+", TestValue::Integer(5)),
+            true
+        );
+    }
+
+
+    #[test]
+    fn test_call_expression_parameter_parsing() {
+        struct CallExpressionParameterTest {
+            input: &'static str,
+            expected_ident: &'static str,
+            expected_args: Vec<String>
+        }
+
+        let call_expression_parameter_test: Vec<CallExpressionParameterTest> = vec![
+            CallExpressionParameterTest{input: "add();", expected_ident: "add", expected_args: Vec::new()},
+            CallExpressionParameterTest{input: "add(1);", expected_ident: "add", expected_args: vec!["1".to_string()]},
+            CallExpressionParameterTest{input: "add(1, 2 * 3, 4 + 5);", expected_ident: "add", expected_args: vec!["1".to_string(), "(2 * 3)".to_string(), "(4 + 5)".to_string()]},
+        ];
+
+        for test in call_expression_parameter_test.iter(){
+            let lexer = lexer::Lexer::new(test.input.to_string());
+            let mut parser = parser::Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parser_errors(&parser);
+
+            let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
+                panic!("program.statements[0] is not ast::ExpressionStatement");
+            };
+
+            let Some(call_expr) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<CallExpression>() else {
+                panic!("stmt.expression is not ast::CallExpression. got = {:?}", stmt.expression);
+            };
+
+            assert_eq!(
+                test_identifier(&*call_expr.function.as_ref(), test.expected_ident),
+                true
+            );
+
+            assert_eq!(
+                call_expr.arguments.len(),
+                test.expected_args.len(),
+                "wrong number of argument. want = {}, got = {}",
+                test.expected_args.len(),
+                call_expr.arguments.len()
+            );
+
+            for (expected, args) in test.expected_args
+                .iter()
+                .zip(&call_expr.arguments){
+                    assert_eq!(
+                        &args.string(),
+                        expected,
+                        "Wrong argument. want = {}, got = {}",
+                        expected, args.string()
+                    )
             }
         } 
     }
