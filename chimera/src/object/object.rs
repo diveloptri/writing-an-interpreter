@@ -1,38 +1,26 @@
 pub type ObjectType = &'static str;
 
-pub const INTEGER_OBJ: &str = "INTEGER";
-pub const BOOLEAN_OBJ: &str = "BOOLEAN";
-
-pub trait Object {
-    fn obj_type(&self) -> ObjectType;
-    fn inspect(&self) -> String;
-}
-
 #[derive(Debug)]
-pub struct Integer {
-    pub value: i64
+pub enum Object {
+    Integer(i64),
+    Boolean(bool),
+    Null,
 }
 
-impl Object for Integer {
-    fn obj_type(&self) -> ObjectType {
-        return INTEGER_OBJ
+impl Object {
+    pub fn object_type(&self) -> ObjectType {
+        match self {
+            Object::Integer(_) => "INTEGER",
+            Object::Boolean(_) => "BOOLEAN",
+            Object::Null => "NULL",
+        }
     }
 
-    fn inspect(&self) -> String {
-        format!{"{}", self.value}
-    }
-}
-
-pub struct Boolean {
-    pub value: bool
-}
-
-impl Object for Boolean{
-    fn obj_type(&self) -> ObjectType {
-        return BOOLEAN_OBJ
-    }
-
-    fn inspect(&self) -> String {
-        format!{"{}", self.value}
+    pub fn inspect(&self) -> String {
+        match self {
+            Object::Integer(val) => val.to_string(),
+            Object::Boolean(val) => val.to_string(),
+            Object::Null => "null".to_string(),
+        }
     }
 }
