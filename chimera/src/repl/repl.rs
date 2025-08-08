@@ -1,6 +1,7 @@
 use std::io::{self, Write};
-use crate::ast::ast::Node;
+use crate::evaluator::evaluator;
 use crate::lexer::lexer::Lexer;
+use crate::object::object::Object;
 use crate::parser::parser;
 
 pub const PROMPT: &'static str = ">> ";
@@ -19,7 +20,11 @@ pub fn start_repl() {
             continue;
         };
         
-        println!("{}", program.string());
+        let evaluated = evaluator::eval(&program);
+        match evaluated {
+            Object::Null => (),
+            _ => println!("{}", evaluated.inspect()),
+        }
     }
 }
 

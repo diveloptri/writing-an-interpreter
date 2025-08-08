@@ -2,19 +2,18 @@ use std::{any::Any, fmt::Debug};
 
 use crate::token::token::Token;
 
-pub trait Node {
+pub trait Node: Any{
     fn token_literal(&self) -> String;
     fn string(&self) -> String;
+    fn as_any(&self) -> &dyn Any;
 } 
 
 pub trait Statement: Node + Any + Debug {
     fn statement_node(&self);
-    fn as_any(&self) -> &dyn Any;
 }
 
 pub trait Expression: Node + Any + Debug {
     fn expression_node(&self);
-    fn as_any(&self) -> &dyn Any;
 }
 
 pub struct Program {
@@ -37,6 +36,8 @@ impl Node for Program {
             .collect::<Vec<String>>()
             .join("")
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -48,7 +49,6 @@ pub struct LetStatement {
 
 impl Statement for LetStatement {
     fn statement_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for LetStatement{
@@ -66,11 +66,12 @@ impl Node for LetStatement{
                 .unwrap_or_else(|| String::new())
         )
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Expression for LetStatement{
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -87,11 +88,12 @@ impl Node for Identifier {
     fn string(&self) -> String {
         self.value.clone()
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Expression for Identifier {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -102,7 +104,6 @@ pub struct ReturnStatement {
 
 impl Statement for ReturnStatement {
     fn statement_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for ReturnStatement{
@@ -120,11 +121,12 @@ impl Node for ReturnStatement{
         
         )
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Expression for ReturnStatement{
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -135,7 +137,6 @@ pub struct ExpressionStatement {
 
 impl Statement for ExpressionStatement {
     fn statement_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for ExpressionStatement {
@@ -150,11 +151,12 @@ impl Node for ExpressionStatement {
 
         return String::new()
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Expression for ExpressionStatement {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -165,7 +167,6 @@ pub struct IntegerLiteral {
 
 impl Expression for IntegerLiteral {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for IntegerLiteral {
@@ -176,6 +177,8 @@ impl Node for IntegerLiteral {
     fn string(&self) -> String {
         self.token.literal.clone()
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -194,11 +197,12 @@ impl Node for PrefixExpression {
     fn string(&self) -> String {
         format!("({}{})", self.operator, self.right.string())
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Expression for PrefixExpression {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -217,11 +221,12 @@ impl Node for InfixExpression {
     fn string(&self) -> String {
         format!("({} {} {})", self.left.string(), self.operator, self.right.string())
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Expression for InfixExpression {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -238,11 +243,12 @@ impl Node for Boolean {
     fn string(&self) -> String {
         self.token.literal.clone()
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Expression for Boolean {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -253,7 +259,6 @@ pub struct BlockStatement {
 
 impl Expression for BlockStatement {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for BlockStatement {
@@ -268,6 +273,8 @@ impl Node for BlockStatement {
             .collect::<Vec<String>>()
             .join("")
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -280,7 +287,6 @@ pub struct IfExpression {
 
 impl Expression for IfExpression {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for IfExpression {
@@ -297,6 +303,8 @@ impl Node for IfExpression {
 
         result 
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -308,7 +316,6 @@ pub struct FunctionLiteral {
 
 impl Expression for FunctionLiteral {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for FunctionLiteral {
@@ -321,6 +328,8 @@ impl Node for FunctionLiteral {
 
         format!("{}({}){}", self.token_literal(), parameter, self.body.string())
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
 
 #[derive(Debug)]
@@ -332,7 +341,6 @@ pub struct CallExpression {
 
 impl Expression for CallExpression {
     fn expression_node(&self) {}
-    fn as_any(&self) -> &dyn Any { self }
 }
 
 impl Node for CallExpression {
@@ -345,4 +353,6 @@ impl Node for CallExpression {
 
         format!("{}({})", self.function.string(), args) 
     }
+
+    fn as_any(&self) -> &dyn Any { self }
 }
