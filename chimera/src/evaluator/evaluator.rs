@@ -12,6 +12,7 @@ enum NodeType<'a> {
     IntegerLiteral(&'a ast::IntegerLiteral),
     Boolean(&'a ast::Boolean),
     PrefixExpression(&'a ast::PrefixExpression),
+    InfixExpression(&'a ast::InfixExpression),
     Unknown,
 }
 
@@ -26,6 +27,8 @@ fn classify_node(node: &dyn ast::Node) -> NodeType<'_> {
         NodeType::Boolean(boolean)
     } else if let Some(prefix_expr) = node.as_any().downcast_ref::<ast::PrefixExpression>() {
         NodeType::PrefixExpression(prefix_expr)
+    } else if let Some(infix_expr) = node.as_any().downcast_ref::<ast::InfixExpression>() {
+        NodeType::InfixExpression(infix_expr)
     } else {
         NodeType::Unknown
     }
@@ -46,6 +49,11 @@ pub fn eval(node: &dyn ast::Node) -> object::Object {
         NodeType::PrefixExpression(prefix_expr) => {
             let right = eval(&*prefix_expr.right);
             eval_prefix_expression(&prefix_expr.operator, right)
+        },
+        NodeType::InfixExpression(infix_expr) => {
+            let left= eval(&*infix_expr.left);
+            let right = eval(&*infix_expr.right);
+            eval_infix_expression(&infix_expr.operator, left, right)
         },
         NodeType::Unknown => object::Object::Null
     }
@@ -86,5 +94,30 @@ fn eval_minus_prefix_operator_expression(right: object::Object) -> object::Objec
     match right {
         object::Object::Integer(val) => object::Object::Integer(-val),
         _ => Object::Null
+    }
+}
+
+fn eval_infix_expression(operator: &str, left: object::Object, right: object::Object) -> object::Object {
+    match (left, right, operator) {
+        (object::Object::Integer(l), object::Object::Integer(r), _) => {
+            eval_integer_infix_expression(operator, l, r)
+        },
+        (l, r, "==") => native_bool_to_boolean_object(l == r),
+        (l, r, "!=") => native_bool_to_boolean_object(l != r),
+        _ => NULL
+    }
+}
+
+fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> object::Object {
+    match operator {
+        "+" => object::Object::Integer(left + right),
+        "-" => object::Object::Integer(left - right),
+        "*" => object::Object::Integer(left * right),
+        "/" => object::Object::Integer(left / right),
+        "<" => native_bool_to_boolean_object(left < right),
+        ">" => native_bool_to_boolean_object(left > right),
+        "==" => native_bool_to_boolean_object(left == right),
+        "!=" => native_bool_to_boolean_object(left != right),
+        _ => Object::Null,
     }
 }

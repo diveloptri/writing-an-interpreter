@@ -40,6 +40,18 @@ mod tests {
         let eval_integer_expression_tests: Vec<EvalIntegerExpressionTest> = vec![
             EvalIntegerExpressionTest{input: "5", expected: 5},
             EvalIntegerExpressionTest{input: "10", expected: 10},
+            EvalIntegerExpressionTest{input: "-10", expected: -10},
+            EvalIntegerExpressionTest{input: "5 + 5 + 5 + 5 - 10", expected: 10},
+            EvalIntegerExpressionTest{input: "2 * 2 * 2 * 2 * 2", expected: 32},
+            EvalIntegerExpressionTest{input: "-50 + 100 + -50", expected: 0},
+            EvalIntegerExpressionTest{input: "5 * 2 + 10", expected: 20},
+            EvalIntegerExpressionTest{input: "5 + 2 * 10", expected: 25},
+            EvalIntegerExpressionTest{input: "20 + 2 * -10", expected: 0},
+            EvalIntegerExpressionTest{input: "50 / 2 * 2 + 10", expected: 60},
+            EvalIntegerExpressionTest{input: "2 * (5 + 10)", expected: 30},
+            EvalIntegerExpressionTest{input: "3 * 3 * 3 + 10", expected: 37},
+            EvalIntegerExpressionTest{input: "3 * (3 * 3) + 10", expected: 37},
+            EvalIntegerExpressionTest{input: "(5 + 10 * 2 + 15 / 3) * 2 + -10", expected: 50},
         ];
 
         for test in eval_integer_expression_tests.iter() {
@@ -77,6 +89,23 @@ mod tests {
         let eval_bool_expression_tests: Vec<EvalBoolExpressionTest> = vec![
             EvalBoolExpressionTest{input: "true", expected: true},
             EvalBoolExpressionTest{input: "false", expected: false},
+            EvalBoolExpressionTest{input: "1 < 2", expected: true},
+            EvalBoolExpressionTest{input: "1 > 2", expected: false},
+            EvalBoolExpressionTest{input: "1 < 1", expected: false},
+            EvalBoolExpressionTest{input: "1 > 1", expected: false},
+            EvalBoolExpressionTest{input: "1 == 1", expected: true},
+            EvalBoolExpressionTest{input: "1 != 1", expected: false},
+            EvalBoolExpressionTest{input: "1 == 2", expected: false},
+            EvalBoolExpressionTest{input: "1 != 2", expected: true},
+            EvalBoolExpressionTest{input: "true == true", expected: true},
+            EvalBoolExpressionTest{input: "false == false", expected: true},
+            EvalBoolExpressionTest{input: "true == false", expected: false},
+            EvalBoolExpressionTest{input: "true != false", expected: true},
+            EvalBoolExpressionTest{input: "false != true", expected: true},
+            EvalBoolExpressionTest{input: "(1 < 2) == true", expected: true},
+            EvalBoolExpressionTest{input: "(1 < 2) == false", expected: false},
+            EvalBoolExpressionTest{input: "(1 > 2) == true", expected: false},
+            EvalBoolExpressionTest{input: "(1 > 2) == false", expected: true},
         ];
 
         for test in eval_bool_expression_tests.iter() {
