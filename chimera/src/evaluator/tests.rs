@@ -86,4 +86,28 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_bang_operator() {
+        struct BangOperatorTest {
+            input: &'static str,
+            expected: bool,
+        }
+
+        let bang_operator_tests: Vec<BangOperatorTest> = vec![
+            BangOperatorTest{input: "!true", expected: false},
+            BangOperatorTest{input: "!false", expected: true},
+            BangOperatorTest{input: "!5", expected: false},
+            BangOperatorTest{input: "!!true", expected: true},
+            BangOperatorTest{input: "!!false", expected: false},
+            BangOperatorTest{input: "!!5", expected: true},
+        ];
+
+        for test in bang_operator_tests.iter() {
+            let evaluated = test_eval(test.input.to_string());
+            assert!(
+                test_boolean_object(evaluated, test.expected),
+            );
+        }
+    }
 }

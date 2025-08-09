@@ -1,4 +1,5 @@
-use crate::{ast::ast, object::object::{self, Object}};
+use crate::ast::ast;
+use crate::object::{object, object::Object};
 
 
 pub const TRUE: Object = object::Object::Boolean(true);
@@ -10,6 +11,7 @@ enum NodeType<'a> {
     ExpressionStatement(&'a ast::ExpressionStatement),
     IntegerLiteral(&'a ast::IntegerLiteral),
     Boolean(&'a ast::Boolean),
+    PrefixExpression(&'a ast::PrefixExpression),
     Unknown,
 }
 
@@ -22,6 +24,8 @@ fn classify_node(node: &dyn ast::Node) -> NodeType<'_> {
         NodeType::IntegerLiteral(int_literal)
     } else if let Some(boolean) = node.as_any().downcast_ref::<ast::Boolean>() {
         NodeType::Boolean(boolean)
+    } else if let Some(prefix_expr) = node.as_any().downcast_ref::<ast::PrefixExpression>() {
+        NodeType::PrefixExpression(prefix_expr)
     } else {
         NodeType::Unknown
     }
@@ -39,6 +43,10 @@ pub fn eval(node: &dyn ast::Node) -> object::Object {
         },
         NodeType::IntegerLiteral(int_literal) => object::Object::Integer(int_literal.value),
         NodeType::Boolean(boolean) => native_bool_to_boolean_object(boolean.value),
+        NodeType::PrefixExpression(prefix_expr) => {
+            let right = eval(&*prefix_expr.right);
+            eval_prefix_expression(&prefix_expr.operator, right)
+        },
         NodeType::Unknown => object::Object::Null
     }
 }
@@ -55,4 +63,28 @@ fn native_bool_to_boolean_object(input: bool) -> object::Object {
         return TRUE
     }
     FALSE
+}
+
+fn eval_prefix_expression(operator: &str, right: object::Object) -> object::Object {
+    match operator {
+        "!" => eval_bang_operator_expression(right),
+        "-" => eval_minus_prefix_operator_expression(right),
+        _ => NULL
+    }
+}
+
+fn eval_bang_operator_expression(right: object::Object) -> object::Object {
+    match right {
+        TRUE => FALSE,
+        FALSE => TRUE,
+        NULL => TRUE,
+        _ => FALSE
+    }
+}
+
+fn eval_minus_prefix_operator_expression(right: object::Object) -> object::Object {
+    match right {
+        object::Object::Integer(val) => object::Object::Integer(-val),
+        _ => Object::Null
+    }
 }

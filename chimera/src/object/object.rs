@@ -1,6 +1,10 @@
 pub type ObjectType = &'static str;
 
-#[derive(Debug)]
+pub const INTEGER_OBJ: &str = "INTEGER";
+pub const BOOLEAN:  &str = "BOOLEAN";
+pub const NULL: &str = "NULL";
+
+#[derive(Debug, PartialEq)]
 pub enum Object {
     Integer(i64),
     Boolean(bool),
@@ -10,9 +14,9 @@ pub enum Object {
 impl Object {
     pub fn object_type(&self) -> ObjectType {
         match self {
-            Object::Integer(_) => "INTEGER",
-            Object::Boolean(_) => "BOOLEAN",
-            Object::Null => "NULL",
+            Object::Integer(_) => INTEGER_OBJ,
+            Object::Boolean(_) => BOOLEAN,
+            Object::Null => NULL,
         }
     }
 
