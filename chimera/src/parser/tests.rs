@@ -19,7 +19,7 @@ mod tests {
             expected_value: TestValue,
         }
 
-        let let_statement_test: Vec<LetStatementTest> = vec![
+        let let_statement_test = [
             LetStatementTest{input: "let x = 5;", expected_identifier: "x", expected_value: TestValue::Integer(5)},
             LetStatementTest{input: "let y = 10;", expected_identifier: "y", expected_value: TestValue::Integer(10)},
             LetStatementTest{input: "let foobar = y;", expected_identifier: "foobar", expected_value: TestValue::String("y".to_string())},
@@ -61,7 +61,7 @@ mod tests {
             expected_value: TestValue 
         }
 
-        let return_tests: Vec<ReturnStatementTest> = vec![
+        let return_tests = [
             ReturnStatementTest{input: "return 5;", expected_value: TestValue::Integer(5)},
             ReturnStatementTest{input: "return 10;", expected_value: TestValue::Integer(10)},
             ReturnStatementTest{input: "return foobar;", expected_value: TestValue::String("foobar".to_string())},
@@ -204,7 +204,7 @@ mod tests {
             expected_boolean: bool
         }
 
-        let boolean_tests: Vec<BooleanTest> = vec![
+        let boolean_tests = [
             BooleanTest{input: "true;", expected_boolean: true},
             BooleanTest{input: "false;", expected_boolean: false},
         ];
@@ -254,7 +254,7 @@ mod tests {
             value: TestValue,
         }
 
-        let prefix_tests: Vec<PrefixTest> = vec![
+        let prefix_tests = [
             PrefixTest{input: "!5", operator: "!", value: TestValue::Integer(5)},
             PrefixTest{input: "-15", operator: "-", value: TestValue::Integer(15)},
             PrefixTest{input: "!true;", operator: "!", value: TestValue::Boolean(true)},
@@ -312,7 +312,7 @@ mod tests {
             right_value: TestValue,
         }
 
-        let infix_tests: Vec<InfixTest> = vec![
+        let infix_tests = [
             InfixTest{input: "5 + 5", left_value: TestValue::Integer(5), operator: "+", right_value: TestValue::Integer(5)},
             InfixTest{input: "5 - 5", left_value: TestValue::Integer(5), operator: "-", right_value: TestValue::Integer(5)},
             InfixTest{input: "5 * 5", left_value: TestValue::Integer(5), operator: "*", right_value: TestValue::Integer(5)},
@@ -358,7 +358,7 @@ mod tests {
             expected: &'static str,
         }
 
-        let precedence_tests: Vec<PrecedenceTest> = vec![
+        let precedence_tests = [
             PrecedenceTest{input: "-a * b", expected: "((-a) * b)"},
             PrecedenceTest{input: "!-a", expected: "(!(-a))"},
             PrecedenceTest{input: "a + b + c", expected: "((a + b) + c)"},
@@ -517,7 +517,7 @@ mod tests {
             expected_parameter: Vec<String>
         }
 
-        let parameter_test: Vec<ParameterTest> = vec![
+        let parameter_test = [
             ParameterTest{input: "fn() {};", expected_parameter: Vec::new()},
             ParameterTest{input: "fn(x) {};", expected_parameter: vec!["x".to_string()]},
             ParameterTest{input: "fn(x, y, z) {};", expected_parameter: vec!["x".to_string(), "y".to_string(), "z".to_string()]},
@@ -620,7 +620,7 @@ mod tests {
             expected_args: Vec<String>
         }
 
-        let call_expression_parameter_test: Vec<CallExpressionParameterTest> = vec![
+        let call_expression_parameter_test = [
             CallExpressionParameterTest{input: "add();", expected_ident: "add", expected_args: Vec::new()},
             CallExpressionParameterTest{input: "add(1);", expected_ident: "add", expected_args: vec!["1".to_string()]},
             CallExpressionParameterTest{input: "add(1, 2 * 3, 4 + 5);", expected_ident: "add", expected_args: vec!["1".to_string(), "(2 * 3)".to_string(), "(4 + 5)".to_string()]},

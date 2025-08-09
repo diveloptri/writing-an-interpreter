@@ -13,6 +13,8 @@ enum NodeType<'a> {
     Boolean(&'a ast::Boolean),
     PrefixExpression(&'a ast::PrefixExpression),
     InfixExpression(&'a ast::InfixExpression),
+    BlockStatement(&'a ast::BlockStatement),
+    IfExpression(&'a ast::IfExpression),
     Unknown,
 }
 
@@ -29,6 +31,10 @@ fn classify_node(node: &dyn ast::Node) -> NodeType<'_> {
         NodeType::PrefixExpression(prefix_expr)
     } else if let Some(infix_expr) = node.as_any().downcast_ref::<ast::InfixExpression>() {
         NodeType::InfixExpression(infix_expr)
+    } else if let Some(block_stmt) = node.as_any().downcast_ref::<ast::BlockStatement>() {
+        NodeType::BlockStatement(block_stmt)
+    } else if let Some(if_expr) = node.as_any().downcast_ref::<ast::IfExpression>() {
+        NodeType::IfExpression(if_expr)
     } else {
         NodeType::Unknown
     }
@@ -55,6 +61,8 @@ pub fn eval(node: &dyn ast::Node) -> object::Object {
             let right = eval(&*infix_expr.right);
             eval_infix_expression(&infix_expr.operator, left, right)
         },
+        NodeType::BlockStatement(block_stmt) => eval_statements(&block_stmt.statements),
+        NodeType::IfExpression(if_expr) => eval_if_expression(if_expr),
         NodeType::Unknown => object::Object::Null
     }
 }
@@ -119,5 +127,26 @@ fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> objec
         "==" => native_bool_to_boolean_object(left == right),
         "!=" => native_bool_to_boolean_object(left != right),
         _ => Object::Null,
+    }
+}
+
+fn eval_if_expression(if_expr: &ast::IfExpression) -> object::Object {
+    let condition = eval(&*if_expr.condition);
+
+    if is_truthy(condition) {
+        return eval(&if_expr.consequence)
+    } else if let Some(alternative) = &if_expr.alternative {
+        return eval(alternative)
+    } else {
+        return NULL
+    }
+}
+
+fn is_truthy(object: object::Object) -> bool {
+    match object {
+        NULL => false,
+        TRUE => true,
+        FALSE => false,
+        _ => true
     }
 }

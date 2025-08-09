@@ -37,7 +37,7 @@ mod tests {
             expected: i64,
         }
 
-        let eval_integer_expression_tests: Vec<EvalIntegerExpressionTest> = vec![
+        let eval_integer_expression_tests = [
             EvalIntegerExpressionTest{input: "5", expected: 5},
             EvalIntegerExpressionTest{input: "10", expected: 10},
             EvalIntegerExpressionTest{input: "-10", expected: -10},
@@ -86,7 +86,7 @@ mod tests {
             expected: bool,
         }
 
-        let eval_bool_expression_tests: Vec<EvalBoolExpressionTest> = vec![
+        let eval_bool_expression_tests = [
             EvalBoolExpressionTest{input: "true", expected: true},
             EvalBoolExpressionTest{input: "false", expected: false},
             EvalBoolExpressionTest{input: "1 < 2", expected: true},
@@ -123,7 +123,7 @@ mod tests {
             expected: bool,
         }
 
-        let bang_operator_tests: Vec<BangOperatorTest> = vec![
+        let bang_operator_tests = [
             BangOperatorTest{input: "!true", expected: false},
             BangOperatorTest{input: "!false", expected: true},
             BangOperatorTest{input: "!5", expected: false},
@@ -137,6 +137,56 @@ mod tests {
             assert!(
                 test_boolean_object(evaluated, test.expected),
             );
+        }
+    }
+    
+    #[derive(Debug, Clone, PartialEq)]
+    enum TestValue {
+        Integer(i64),
+        Null,
+    }
+
+    #[test]
+    fn test_if_else_expression() {
+        struct IfElseExpressionTest {
+            input: &'static str,
+            expected: TestValue
+        }
+
+        let if_else_expression_tests = [
+            IfElseExpressionTest{input: "if (true) { 10 }", expected: TestValue::Integer(10)},
+            IfElseExpressionTest{input: "if (false) { 10 }", expected: TestValue::Null},
+            IfElseExpressionTest{input: "if (1) { 10 }", expected: TestValue::Integer(10)},
+            IfElseExpressionTest{input: "if (1 < 2) { 10 }", expected: TestValue::Integer(10)},
+            IfElseExpressionTest{input: "if (1 > 2) { 10 }", expected: TestValue::Null},
+            IfElseExpressionTest{input: "if (1 > 2) { 10 } else { 20 }", expected: TestValue::Integer(20)},
+            IfElseExpressionTest{input: "if (1 < 2) { 10 } else { 20 }", expected: TestValue::Integer(10)},
+        ];
+
+        for test in if_else_expression_tests.iter() {
+            let evaluated = test_eval(test.input.to_string());
+            match test.expected {
+                TestValue::Integer(val) => {
+                    assert!(
+                        test_integer_object(evaluated, val)
+                    );
+                },
+                TestValue::Null => {
+                    assert!(
+                        test_null_object(evaluated)
+                    );
+                }
+            }
+        }
+    }
+
+    fn test_null_object(object: object::Object) -> bool {
+        match object {
+            object::Object::Null => true,
+            _ => {
+                eprintln!("object is not NULL. got = {:?}", object);
+                false
+            },
         }
     }
 }
