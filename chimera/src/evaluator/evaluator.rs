@@ -15,6 +15,7 @@ enum NodeType<'a> {
     InfixExpression(&'a ast::InfixExpression),
     BlockStatement(&'a ast::BlockStatement),
     IfExpression(&'a ast::IfExpression),
+    ReturnStatement(&'a ast::ReturnStatement),
     Unknown,
 }
 
@@ -35,6 +36,8 @@ fn classify_node(node: &dyn ast::Node) -> NodeType<'_> {
         NodeType::BlockStatement(block_stmt)
     } else if let Some(if_expr) = node.as_any().downcast_ref::<ast::IfExpression>() {
         NodeType::IfExpression(if_expr)
+    } else if let Some(return_stmt) = node.as_any().downcast_ref::<ast::ReturnStatement>() {
+        NodeType::ReturnStatement(return_stmt)
     } else {
         NodeType::Unknown
     }
@@ -42,7 +45,7 @@ fn classify_node(node: &dyn ast::Node) -> NodeType<'_> {
 
 pub fn eval(node: &dyn ast::Node) -> object::Object {
     match classify_node(node) {
-        NodeType::Program(program) => eval_statements(&program.statements),
+        NodeType::Program(program) => eval_program(&program),
         NodeType::ExpressionStatement(expr_stmt) => {
             if let Some(expr) = &expr_stmt.expression {
                 eval(&**expr)
@@ -61,17 +64,39 @@ pub fn eval(node: &dyn ast::Node) -> object::Object {
             let right = eval(&*infix_expr.right);
             eval_infix_expression(&infix_expr.operator, left, right)
         },
-        NodeType::BlockStatement(block_stmt) => eval_statements(&block_stmt.statements),
+        NodeType::BlockStatement(block_stmt) => eval_block_statements(block_stmt),
         NodeType::IfExpression(if_expr) => eval_if_expression(if_expr),
+        NodeType::ReturnStatement(return_stmt) => {
+            let return_val = match &return_stmt.return_value {
+                Some(expr) => eval(&**expr),
+                None => NULL
+            };
+            object::Object::ReturnValue(Box::new(return_val))
+        },
         NodeType::Unknown => object::Object::Null
     }
 }
 
-fn eval_statements(stmts: &[Box<dyn ast::Statement>]) -> object::Object {
-    stmts.iter()
-        .map(|stmt| eval(&**stmt))
-        .last()
-        .unwrap_or(Object::Null)
+fn eval_program(program: &ast::Program) -> object::Object {
+    let mut result = Object::Null;
+    for stmt in &program.statements {
+        result = eval(&**stmt);
+        if let Object::ReturnValue(val) = result {
+            return *val
+        }
+    }
+    result
+}
+
+fn eval_block_statements(block: &ast::BlockStatement) -> object::Object {
+    let mut result = Object::Null;
+    for stmt in &block.statements {
+        result = eval(&**stmt);
+        if let Object::ReturnValue(_) = result {
+            return result;
+        }
+    }
+    result
 }
 
 fn native_bool_to_boolean_object(input: bool) -> object::Object {

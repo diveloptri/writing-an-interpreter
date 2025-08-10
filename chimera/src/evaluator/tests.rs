@@ -189,4 +189,26 @@ mod tests {
             },
         }
     }
+
+    #[test]
+    fn test_return_statement() {
+        struct ReturnStatementTest {
+            input: &'static str,
+            expected: i64
+        }
+
+        let return_statement_tests = [
+            ReturnStatementTest{input: "return 10;", expected: 10},
+            ReturnStatementTest{input: "return 10; 9;", expected: 10},
+            ReturnStatementTest{input: "return 2 * 5; 9;", expected: 10},
+            ReturnStatementTest{input: "9; return 2 * 5; 9;", expected: 10},
+        ];
+
+        for test in return_statement_tests.iter() {
+            let evaluated = test_eval(test.input.to_string());
+            assert!(
+                test_integer_object(evaluated, test.expected)
+            );
+        }
+    }
 }
