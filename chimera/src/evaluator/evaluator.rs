@@ -57,11 +57,22 @@ pub fn eval(node: &dyn ast::Node) -> object::Object {
         NodeType::Boolean(boolean) => native_bool_to_boolean_object(boolean.value),
         NodeType::PrefixExpression(prefix_expr) => {
             let right = eval(&*prefix_expr.right);
+            if is_error(&right) {
+                return right
+            }
             eval_prefix_expression(&prefix_expr.operator, right)
         },
         NodeType::InfixExpression(infix_expr) => {
             let left= eval(&*infix_expr.left);
+            if is_error(&left) {
+                return left
+            }
+
             let right = eval(&*infix_expr.right);
+            if is_error(&right) {
+                return right
+            }
+
             eval_infix_expression(&infix_expr.operator, left, right)
         },
         NodeType::BlockStatement(block_stmt) => eval_block_statements(block_stmt),
@@ -71,6 +82,11 @@ pub fn eval(node: &dyn ast::Node) -> object::Object {
                 Some(expr) => eval(&**expr),
                 None => NULL
             };
+
+            if is_error(&return_val) {
+                return return_val
+            }
+
             object::Object::ReturnValue(Box::new(return_val))
         },
         NodeType::Unknown => object::Object::Null
@@ -81,6 +97,11 @@ fn eval_program(program: &ast::Program) -> object::Object {
     let mut result = Object::Null;
     for stmt in &program.statements {
         result = eval(&**stmt);
+        
+        if is_error(&result) {
+            return result
+        }
+
         if let Object::ReturnValue(val) = result {
             return *val
         }
@@ -92,6 +113,11 @@ fn eval_block_statements(block: &ast::BlockStatement) -> object::Object {
     let mut result = Object::Null;
     for stmt in &block.statements {
         result = eval(&**stmt);
+
+        if is_error(&result) {
+            return result
+        }
+
         if let Object::ReturnValue(_) = result {
             return result;
         }
@@ -110,7 +136,7 @@ fn eval_prefix_expression(operator: &str, right: object::Object) -> object::Obje
     match operator {
         "!" => eval_bang_operator_expression(right),
         "-" => eval_minus_prefix_operator_expression(right),
-        _ => NULL
+        _ => new_error(format!("unknown operator: {}{}", operator, right.object_type()))
     }
 }
 
@@ -126,18 +152,25 @@ fn eval_bang_operator_expression(right: object::Object) -> object::Object {
 fn eval_minus_prefix_operator_expression(right: object::Object) -> object::Object {
     match right {
         object::Object::Integer(val) => object::Object::Integer(-val),
-        _ => Object::Null
+        _ => new_error(format!("unknown operator: -{}", right.object_type()))
     }
 }
 
 fn eval_infix_expression(operator: &str, left: object::Object, right: object::Object) -> object::Object {
+    let left_type = left.object_type();
+    let right_type = right.object_type();
+
+    if left_type != right_type {
+        return new_error(format!("type mismatch: {} {} {}", left_type, operator, right_type))
+    }
+
     match (left, right, operator) {
         (object::Object::Integer(l), object::Object::Integer(r), _) => {
             eval_integer_infix_expression(operator, l, r)
         },
         (l, r, "==") => native_bool_to_boolean_object(l == r),
         (l, r, "!=") => native_bool_to_boolean_object(l != r),
-        _ => NULL
+        _ => new_error(format!("unknown operator: {} {} {}", left_type, operator, right_type))
     }
 }
 
@@ -151,12 +184,15 @@ fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> objec
         ">" => native_bool_to_boolean_object(left > right),
         "==" => native_bool_to_boolean_object(left == right),
         "!=" => native_bool_to_boolean_object(left != right),
-        _ => Object::Null,
+        _ => new_error(format!("unknown operator: {} {} {}", left, operator, right))
     }
 }
 
 fn eval_if_expression(if_expr: &ast::IfExpression) -> object::Object {
     let condition = eval(&*if_expr.condition);
+    if is_error(&condition) {
+        return condition
+    }
 
     if is_truthy(condition) {
         return eval(&if_expr.consequence)
@@ -174,4 +210,12 @@ fn is_truthy(object: object::Object) -> bool {
         FALSE => false,
         _ => true
     }
+}
+
+fn new_error(message: String) -> object::Object {
+    Object::Error(message)
+}
+
+fn is_error(object: &Object) -> bool {
+    matches!(object, Object::Error(_))
 }

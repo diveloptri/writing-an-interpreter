@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::lexer::lexer;
-    use crate::object::object;
+    use crate::object::object::{self, Object};
     use crate::parser::parser;
     use crate::evaluator::evaluator;
 
@@ -209,6 +209,34 @@ mod tests {
             assert!(
                 test_integer_object(evaluated, test.expected)
             );
+        }
+    }
+     
+    #[test]
+    fn test_error_handling() {
+        struct ErrorTest{
+            input: &'static str,
+            expected_message: &'static str,
+        }
+
+        let error_handling_tests = [
+            ErrorTest{input: "5 + true;", expected_message: "type mismatch: INTEGER + BOOLEAN"},
+            ErrorTest{input: "5 + true; 5;", expected_message: "type mismatch: INTEGER + BOOLEAN"},
+            ErrorTest{input: "-true;", expected_message: "unknown operator: -BOOLEAN"},
+            ErrorTest{input: "true + false", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
+            ErrorTest{input: "5; true + false, 5", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
+            ErrorTest{input: "if (10 > 1) { true + false; }", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
+            ErrorTest{input: "if (10 > 1) { if (10 > 1) { return true + false; } return 1; }", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
+        ];
+
+        for test in error_handling_tests.iter() {
+            let evaluated = test_eval(test.input.to_string());
+            match evaluated {
+                Object::Error(val) => {
+                    assert_eq!(val, test.expected_message);
+                },
+                _ => eprintln!("no error object returned. got = {:?}", evaluated),
+            }
         }
     }
 }
