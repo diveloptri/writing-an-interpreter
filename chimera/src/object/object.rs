@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub type ObjectType = &'static str;
 
 pub const ERROR_OBJ: &str = "ERROR";
@@ -6,7 +8,25 @@ pub const INTEGER_OBJ: &str = "INTEGER";
 pub const BOOLEAN:  &str = "BOOLEAN";
 pub const NULL: &str = "NULL";
 
-#[derive(Debug, PartialEq)]
+pub struct Environment {
+    store: HashMap<String, Object>
+}
+
+impl Environment {
+    pub fn new() -> Self {
+        Environment { store: HashMap::new() }
+    }
+
+    pub fn get(&self, name: &str) -> Option<&Object> {
+        self.store.get(name)
+    }
+
+    pub fn set(&mut self, name: String, value: Object) {
+        self.store.insert(name, value);
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Object {
     Error(String),
     ReturnValue(Box<Object>),

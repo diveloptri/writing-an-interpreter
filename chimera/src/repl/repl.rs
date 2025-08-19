@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use crate::evaluator::evaluator;
 use crate::lexer::lexer::Lexer;
-use crate::object::object::Object;
+use crate::object::object::{Environment, Object};
 use crate::parser::parser;
 
 pub const PROMPT: &'static str = ">> ";
@@ -10,6 +10,7 @@ pub const CHIMERA: &'static str = r#"
 "#;
 
 pub fn start_repl() {
+    let mut environment = Environment::new();
     loop {
         let lexer = Lexer::new(prompt());
         let mut parser = parser::Parser::new(lexer);
@@ -20,7 +21,7 @@ pub fn start_repl() {
             continue;
         };
         
-        let evaluated = evaluator::eval(&program);
+        let evaluated = evaluator::eval(&program, &mut environment);
         match evaluated {
             Object::Null => (),
             _ => println!("{}", evaluated.inspect()),

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::lexer::lexer;
-    use crate::object::object::{self, Object};
+    use crate::object::object::{self, Environment, Object};
     use crate::parser::parser;
     use crate::evaluator::evaluator;
 
@@ -9,8 +9,9 @@ mod tests {
         let lexer = lexer::Lexer::new(input);
         let mut parser = parser::Parser::new(lexer);
         let program = parser.parse_program();
+        let mut environment = Environment::new();
 
-        evaluator::eval(&program)
+        evaluator::eval(&program, &mut environment)
     }
 
     fn test_integer_object(obj: object::Object, expected: i64) -> bool {
@@ -227,6 +228,7 @@ mod tests {
             ErrorTest{input: "5; true + false, 5", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
             ErrorTest{input: "if (10 > 1) { true + false; }", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
             ErrorTest{input: "if (10 > 1) { if (10 > 1) { return true + false; } return 1; }", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
+            ErrorTest{input: "foobar", expected_message: "identifier not found: foobar"},
         ];
 
         for test in error_handling_tests.iter() {
@@ -237,6 +239,30 @@ mod tests {
                 },
                 _ => eprintln!("no error object returned. got = {:?}", evaluated),
             }
+        }
+    }
+
+    #[test]
+    fn test_let_statements() {
+        struct LetStatementsTest {
+            input: &'static str,
+            expected: i64,
+        }
+
+        let let_statements_tests = [
+            LetStatementsTest{input: "let a = 5; a;", expected: 5},
+            LetStatementsTest{input: "let a = 5 * 5; a;", expected: 25},
+            LetStatementsTest{input: "let a = 5; let b = a; b;", expected: 5},
+            LetStatementsTest{input: "let a = 5; let b = a; let c = a + b + 5; c;", expected: 15},
+        ];
+
+        for test in let_statements_tests.iter() {
+            assert!(
+                test_integer_object(
+                    test_eval(test.input.to_string()),
+                    test.expected
+                )
+            );
         }
     }
 }
