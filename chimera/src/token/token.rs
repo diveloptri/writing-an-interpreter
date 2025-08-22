@@ -2,7 +2,7 @@ use phf::{phf_map, Map};
 
 pub type TokenType = &'static str;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Token {
    pub token_type: TokenType,
    pub literal: String 

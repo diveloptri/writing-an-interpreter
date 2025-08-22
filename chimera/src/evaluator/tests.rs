@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use crate::ast::ast::Node;
     use crate::lexer::lexer;
-    use crate::object::object::{self, Environment, Object};
+    use crate::object::object::{self, Object};
+    use crate::object::environment::Environment;
     use crate::parser::parser;
     use crate::evaluator::evaluator;
 
@@ -203,6 +205,37 @@ mod tests {
             ReturnStatementTest{input: "return 10; 9;", expected: 10},
             ReturnStatementTest{input: "return 2 * 5; 9;", expected: 10},
             ReturnStatementTest{input: "9; return 2 * 5; 9;", expected: 10},
+            ReturnStatementTest{input: "if (10 > 1) { return 10; }", expected: 10},
+            ReturnStatementTest{
+            input: r#"
+                if (10 > 1) {
+                    if (10 > 1) {
+                        return 10;
+                    }
+                return 1;
+                }
+            
+            "#,
+            expected: 10},
+            ReturnStatementTest{
+            input: r#"
+                let f = fn(x) {
+                    return x;
+                    x + 10;
+                };
+                f(10);
+            "#,
+            expected: 10},
+            ReturnStatementTest{
+            input: r#"
+                let f = fn(x) {
+                    let result = x + 10;
+                    return result
+                    return 10;
+                };
+                f(10);
+            "#,
+            expected: 20},
         ];
 
         for test in return_statement_tests.iter() {
@@ -234,7 +267,7 @@ mod tests {
         for test in error_handling_tests.iter() {
             let evaluated = test_eval(test.input.to_string());
             match evaluated {
-                Object::Error(val) => {
+                object::Object::Error(val) => {
                     assert_eq!(val, test.expected_message);
                 },
                 _ => eprintln!("no error object returned. got = {:?}", evaluated),
@@ -264,5 +297,82 @@ mod tests {
                 )
             );
         }
+    }
+
+    #[test]
+    fn test_function_object() {
+        let input = String::from("fn(x) { x + 2 };");
+
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            Object::Function(parameters, body, _) => {
+                assert_eq!(
+                    parameters.len(),
+                    1,
+                    "function has wrong parameters. Parameters = {:?}",
+                    parameters
+                );
+
+                assert_eq!(
+                    parameters[0].string(),
+                    "x",
+                    "parameter is not 'x'. got = {}",
+                    parameters[0].string()
+                );
+
+                let expected_body = String::from("(x + 2)");
+                assert_eq!(
+                    body.string(),
+                    expected_body,
+                    "body is not = {}. got = {}",
+                    expected_body,
+                    body.string()
+                );
+            },
+            Object::Null | _ => panic!("object is not a Function. got Object::Null"),
+        }
+    }
+
+    #[test]
+    fn test_function_application() {
+        struct FunctionApplicationTest {
+            input: &'static str,
+            expected: i64,
+        }
+
+        let function_application_tests= [
+            FunctionApplicationTest{input: "let identity = fn(x) { x; }; identity(5);", expected: 5},
+            FunctionApplicationTest{input: "let identity = fn(x) { return x; }; identity(5);", expected: 5},
+            FunctionApplicationTest{input: "let double = fn(x) { x * 2; }; double(5);", expected: 10},
+            FunctionApplicationTest{input: "let add = fn(x, y) { x + y; }; add(5, 5);", expected: 10},
+            FunctionApplicationTest{input: "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", expected: 20},
+            FunctionApplicationTest{input: "fn(x) { x; };(5);", expected: 5},
+        ];
+
+        for test in function_application_tests.iter() {
+            assert!(
+                test_integer_object(
+                    test_eval(test.input.to_string()),
+                    test.expected
+                )
+            );
+        }
+    }
+
+    #[test]
+    fn test_closure() {
+        let input = String::from(r#"
+            let newAdder = fn(x) {
+                fn(y) { x + y };
+            };
+
+            let addTwo = newAdder(2);
+            addTwo(2);
+        "#);
+
+        assert!(
+            test_integer_object(test_eval(input), 4)
+        )
     }
 }

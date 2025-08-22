@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::ast::{Boolean, CallExpression, Expression, ExpressionStatement, FunctionLiteral, Identifier, IfExpression, InfixExpression, IntegerLiteral, LetStatement, Node, PrefixExpression, ReturnStatement, Statement};
+    use crate::ast::ast::{ExpressionType, Node, StatementType};
     use crate::lexer::lexer;
     use crate::parser::parser::{self, Parser};
 
@@ -40,15 +40,16 @@ mod tests {
                 program.statements.len()
             );
 
-            if !test_let_statement(&*program.statements[0],test.expected_identifier) {
+            if !test_let_statement(&program.statements[0],test.expected_identifier) {
                 panic!();
             }
 
-            let Some(let_stmt) = program.statements[0].as_any().downcast_ref::<LetStatement>() else {
-                panic!("expr_stmt is not ast::LetStatement")
+            let let_stmt = match &program.statements[0] {
+                StatementType::Let(stmt) => stmt,
+                _ => panic!("expr_stmt is not ast::LetStatement"),
             };
 
-            if !test_literal_expression(&**let_stmt.value.as_ref().unwrap(), &test.expected_value){
+            if !test_literal_expression(let_stmt.value.as_ref().unwrap(), &test.expected_value){
                 panic!();
             }
         }
@@ -82,8 +83,9 @@ mod tests {
                 program.statements.len()
             );
 
-            let Some(return_stmt) = program.statements[0].as_any().downcast_ref::<ReturnStatement>() else {
-                panic!("program.statements[0] is not ast::ReturnStatement");
+            let return_stmt = match &program.statements[0] {
+                StatementType::Return(stmt) => stmt,
+                _ => panic!("program.statements[0] is not ast::ReturnStatement"),
             };
 
             assert_eq!(
@@ -97,7 +99,7 @@ mod tests {
                 panic!("ReturnStatement has no return_value");
             };
 
-            if !test_literal_expression(&**return_value, &test.expected_value) {
+            if !test_literal_expression(return_value, &test.expected_value) {
                 panic!();
             }
         } 
@@ -121,16 +123,18 @@ mod tests {
             program.statements.len()
         );
 
-        let Some(expr_stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-            panic!("program.statements[0] is not ast::ExpressionStatement");
+        let expr_stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"),
         };
 
         let Some(expression) = &expr_stmt.expression else {
             panic!("ExpressionStatement has no expression");
         };
 
-        let Some(identifier) = expression.as_any().downcast_ref::<Identifier>() else {
-            panic!("expression is not Identifier");
+        let identifier = match expression {
+            ExpressionType::Identifier(ident) => ident,
+            _ => panic!("expression is not Identifier"),
         };
 
         assert_eq!(
@@ -168,18 +172,20 @@ mod tests {
             program.statements.len()
         );
 
-        let Some(expr_stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-            panic!("program.statements[0] is not ast::ExpressionStatement");
+        let expr_stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
         };
 
         let Some(expression) = &expr_stmt.expression else {
             panic!("ExpressionStatement has no expression");
         };
 
-        let Some(int_literal) = expression.as_any().downcast_ref::<IntegerLiteral>() else {
-            panic!("expr_stmt is not ast::IntegerLiteral. got = {:?}", expression);
+        let int_literal= match expression {
+            ExpressionType::IntegerLiteral(int_lit) => int_lit,
+            _ => panic!("expr_stmt is not ast::IntegerLiteral. got = {:?}", expression), 
         };
-
+        
         assert_eq!(
             int_literal.value,
             5,
@@ -224,16 +230,18 @@ mod tests {
                 program.statements.len()
             );
 
-            let Some(expr_stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-                panic!("program.statements[0] is not ast::ExpressionStatement");
+            let expr_stmt = match &program.statements[0] {
+                StatementType::Expression(stmt) => stmt,
+                _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
             };
 
             let Some(expression) = &expr_stmt.expression else {
                 panic!("ExpressionStatement has no expression");
             };
 
-            let Some(boolean) = expression.as_any().downcast_ref::<Boolean>() else {
-                panic!("expression is not ast::Boolean. got = {:?}", expression);
+            let boolean= match expression {
+                ExpressionType::Boolean(boolean) => boolean,
+                _ => panic!("expr_stmt is not ast::Boolean. got = {:?}", expression), 
             };
 
             assert_eq!(
@@ -276,18 +284,21 @@ mod tests {
                 program.statements.len()
             );
 
-            let Some(expr_stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-                panic!("program.statements[0] is not ast::ExpressionStatement");
+            let expr_stmt = match &program.statements[0] {
+                StatementType::Expression(stmt) => stmt,
+                _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
             };
+
 
             let Some(expression) = &expr_stmt.expression else {
                 panic!("ExpressionStatement has no expression");
             };
 
-            let Some(prefix_expression) = expression.as_any().downcast_ref::<PrefixExpression>() else {
-                panic!("expression is not ast::PrefixExpression. got = {:?}", expression);
+            let prefix_expression = match expression {
+                ExpressionType::PrefixExpression(prefix_expr) => prefix_expr,
+                _ => panic!("expression is not ast::PrefixExpression. got = {:?}", expression),
             };
-
+            
             assert_eq!(
                 prefix_expression.operator,
                 test.operator,
@@ -296,7 +307,7 @@ mod tests {
                 prefix_expression.operator
             );
             
-            if !test_literal_expression(&*prefix_expression.right, &test.value) {
+            if !test_literal_expression(&prefix_expression.right, &test.value) {
                 panic!();
             }
         }
@@ -341,11 +352,12 @@ mod tests {
                 program.statements.len()
             );
 
-            let Some(expr_stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-                panic!("program.statements[0] is not ast::ExpressionStatement");
+            let expr_stmt = match &program.statements[0] {
+                StatementType::Expression(stmt) => stmt,
+                _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
             };
 
-            if !test_infix_expression(&**expr_stmt.expression.as_ref().unwrap(), test.left_value.clone(), test.operator, test.right_value.clone()) {
+            if !test_infix_expression(&*expr_stmt.expression.as_ref().unwrap(), test.left_value.clone(), test.operator, test.right_value.clone()) {
                 panic!();
             }
         }
@@ -421,13 +433,14 @@ mod tests {
             program.statements.len()
         );
 
-        let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-            panic!("program.statements[0] is not ast::ExpressionStatement");
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
         };
 
-        let Some(if_expr) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<IfExpression>() else {
-            panic!("expr_stmt.expression is not ast::IfExpression. got = {:?}",
-        stmt.expression);
+        let if_expr = match &stmt.expression {
+            Some(ExpressionType::IfExpression(if_expr)) => if_expr,
+            None | Some(_) => panic!("stmt.expression is not ast::IfExpression. got = {:?}", stmt.expression),
         };
 
         if !test_infix_expression(if_expr.condition.as_ref(), TestValue::String("x".to_string()), "<", TestValue::String("y".to_string())) {
@@ -438,12 +451,13 @@ mod tests {
             eprintln!("consequence is not 1 statement. gor = {:?}", if_expr.consequence.statements.len());
         }
 
-        let Some(expr_stmt) = if_expr.consequence.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-            panic!("statements[0] is not ast::ExpressionStatement. got = {:?}", if_expr.consequence.statements[0]);
+        let expr_stmt = match &if_expr.consequence.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("statements[0] is not ast::ExpressionStatement. got = {:?}", if_expr.consequence.statements[0]),
         };
 
         assert_eq!(
-            test_identifier(&**expr_stmt.expression.as_ref().unwrap(), "x"),
+            test_identifier(&*expr_stmt.expression.as_ref().unwrap(), "x"),
             true
         );
 
@@ -471,12 +485,14 @@ mod tests {
             program.statements.len()
         );
 
-        let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-            panic!("program.statements[0] is not ast::ExpressionStatement");
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
         };
 
-        let Some(function_literal) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() else {
-            panic!("stmt.expression is not ast::FunctionLiteral. got = {:?}", stmt.expression);
+        let function_literal = match &stmt.expression {
+            Some(ExpressionType::FunctionLiteral(function_literal)) => function_literal,
+            _ => panic!("stmt.expression is not ast::FunctionLiteral. got = {:?}", stmt.expression),
         };
 
         assert_eq!(
@@ -489,7 +505,7 @@ mod tests {
         let expected_params = ["x", "y"];
         for (param, expected) in function_literal.parameters.iter().zip(&expected_params) {
             assert!(
-                test_literal_expression(param, &TestValue::String(expected.to_string()))
+                test_literal_expression(&ExpressionType::Identifier(param.clone()), &TestValue::String(expected.to_string()))
             );
         }
 
@@ -500,12 +516,13 @@ mod tests {
             function_literal.body.statements.len()
         );
 
-        let Some(body_stmt) = function_literal.body.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-            panic!("function_literal.body.statements is not ast::ExpressionStatement. got = {:?}", function_literal.body.statements[0]);
+        let body_stmt = match &function_literal.body.statements[0] {
+            StatementType::Expression(expr) => expr,
+            _ => panic!("function_literal.body.statements is not ast::ExpressionStatement. got = {:?}", function_literal.body.statements[0]),
         };
 
         assert_eq!(
-            test_infix_expression(&**body_stmt.expression.as_ref().unwrap(), TestValue::String("x".to_string()), "+", TestValue::String("y".to_string())),
+            test_infix_expression(&*body_stmt.expression.as_ref().unwrap(), TestValue::String("x".to_string()), "+", TestValue::String("y".to_string())),
             true
         );
     }
@@ -530,12 +547,14 @@ mod tests {
 
             check_parser_errors(&parser);
 
-            let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-                panic!("program.statements[0] is not ast::ExpressionStatement");
+            let stmt = match &program.statements[0] {
+                StatementType::Expression(stmt) => stmt,
+                _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
             };
 
-            let Some(function_literal) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<FunctionLiteral>() else {
-                panic!("stmt.expression is not ast::FunctionLiteral. got = {:?}", stmt.expression);
+            let function_literal = match &stmt.expression {
+                Some(ExpressionType::FunctionLiteral(function_literal)) => function_literal,
+                _ => panic!("stmt.expression is not ast::FunctionLiteral. got = {:?}", stmt.expression),
             };
 
             assert_eq!(
@@ -550,7 +569,7 @@ mod tests {
                 .iter()
                 .zip(test.expected_parameter.clone()){
                     assert!(
-                        test_literal_expression(param, &TestValue::String(expected.to_string())),
+                        test_literal_expression(&ExpressionType::Identifier(param.clone()), &TestValue::String(expected.to_string())),
                         "Parameter mismatch: expected {}, got = {:?}", expected, param
                     );
             }
@@ -575,12 +594,14 @@ mod tests {
             program.statements.len()
         );
 
-        let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-            panic!("program.statements[0] is not ast::ExpressionStatement");
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
         };
 
-        let Some(call_expr) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<CallExpression>() else {
-            panic!("stmt.expression is not ast::CallExpression. got = {:?}", stmt.expression);
+        let call_expr = match &stmt.expression {
+            Some(ExpressionType::CallExpression(call_expr)) => call_expr,
+            _ => panic!("stmt.expression is not ast::CallExpression. got = {:?}", stmt.expression),
         };
 
         assert_eq!(
@@ -596,17 +617,17 @@ mod tests {
         );
 
         assert!(
-            test_literal_expression(&*call_expr.arguments[0], &TestValue::Integer(1)),
+            test_literal_expression(&call_expr.arguments[0], &TestValue::Integer(1)),
             "Argument mismatch: expected {}, got = {:?}", 1, call_expr.arguments[0]
         );
 
         assert_eq!(
-            test_infix_expression(&*call_expr.arguments[1], TestValue::Integer(2), "*", TestValue::Integer(3)),
+            test_infix_expression(&call_expr.arguments[1], TestValue::Integer(2), "*", TestValue::Integer(3)),
             true
         );
 
         assert_eq!(
-            test_infix_expression(&*call_expr.arguments[2], TestValue::Integer(4), "+", TestValue::Integer(5)),
+            test_infix_expression(&call_expr.arguments[2], TestValue::Integer(4), "+", TestValue::Integer(5)),
             true
         );
     }
@@ -633,12 +654,14 @@ mod tests {
 
             check_parser_errors(&parser);
 
-            let Some(stmt) = program.statements[0].as_any().downcast_ref::<ExpressionStatement>() else {
-                panic!("program.statements[0] is not ast::ExpressionStatement");
+            let stmt = match &program.statements[0] {
+                StatementType::Expression(stmt) => stmt,
+                _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
             };
 
-            let Some(call_expr) = stmt.expression.as_ref().unwrap().as_any().downcast_ref::<CallExpression>() else {
-                panic!("stmt.expression is not ast::CallExpression. got = {:?}", stmt.expression);
+            let call_expr = match &stmt.expression {
+                Some(ExpressionType::CallExpression(call_expr)) => call_expr,
+                _ => panic!("stmt.expression is not ast::CallExpression. got = {:?}", stmt.expression),
             };
 
             assert_eq!(
@@ -668,47 +691,50 @@ mod tests {
     }
 
     // Helper
-    fn test_identifier(expr: &dyn Expression, value: &str) -> bool {
-        let Some(ident) = expr.as_any().downcast_ref::<Identifier>() else {
-            eprintln!("expr is not ast::Identifier. got = {:?}", expr);
-            return false
-        };
-
-        if ident.value != value {
-            eprintln!("ident.token_literal is not {}. got = {}", value, ident.token_literal())
+    fn test_identifier(expr: &ExpressionType, value: &str) -> bool {
+        match expr {
+            ExpressionType::Identifier(ident) => ident.value == value,
+            _ => {
+                eprintln!("expr not Identifier. got = {:?}", expr);
+                false
+            }
         }
+    }
 
-        return true
+    fn test_let_statement(stmt: &StatementType, name: &str) -> bool {
+        match stmt {
+            StatementType::Let(let_stmt) => {
+                if let_stmt.token_literal() != "let" {
+                    dbg!("stmt.token_literal not 'let'. got = {}", let_stmt.token_literal());
+                    return false
+                }
+
+                if let_stmt.name.value != name {
+                    eprintln!("let_stmt.name.value is not ‘{}‘. got = {}", name, let_stmt.name.value);
+                    return false
+                }
+
+                if let_stmt.name.token_literal() != name {
+                    eprintln!("let_stmt.name.token_literal() is not ‘{}‘, got = {}", name, let_stmt.name.token_literal());
+                    return false
+                }
+                    return true
+            },
+            _ => {
+                eprintln!("stmt is not LetStatement");
+                return false
+            }
+        }
 
     }
 
-    fn test_let_statement(stmt: &dyn Statement, name: &str) -> bool {
-        let Some(let_stmt) = stmt.as_any().downcast_ref::<LetStatement>() else {
-            eprintln!("stmt is not LetStatement");
-            return false
-        };
-
-        if let_stmt.token_literal() != "let" {
-            dbg!("stmt.token_literal not 'let'. got = {}", let_stmt.token_literal());
-            return false
-        }
-
-        if let_stmt.name.value != name {
-            eprintln!("let_stmt.name.value is not ‘{}‘. got = {}", name, let_stmt.name.value);
-            return false
-        }
-
-        if let_stmt.name.token_literal() != name {
-            eprintln!("let_stmt.name.token_literal() is not ‘{}‘, got = {}", name, let_stmt.name.token_literal());
-            return false
-        }
-        return true
-    }
-
-    fn test_infix_expression(expr: &dyn Expression, left: TestValue, operator: &str, right: TestValue) -> bool {
-        let Some(infix_expr) = expr.as_any().downcast_ref::<InfixExpression>() else {
-            eprintln!("expr is not ast::InfixExpression. got = {:?}", expr);
-            return false
+    fn test_infix_expression(expr: &ExpressionType, left: TestValue, operator: &str, right: TestValue) -> bool {
+        let infix_expr = match expr {
+            ExpressionType::InfixExpression(infix_expr) => infix_expr,
+            _ => {
+                eprintln!("expr is not ast::InfixExpression. got = {:?}", expr);
+                return false
+            }
         };
 
         if !test_literal_expression(&*infix_expr.left, &left) {
@@ -727,7 +753,7 @@ mod tests {
         return true
     }
     
-    fn test_literal_expression(expr: &dyn Expression, expected: &TestValue) -> bool {
+    fn test_literal_expression(expr: &ExpressionType, expected: &TestValue) -> bool {
         match expected {
             TestValue::Integer(val) => return test_integer_literal(expr, *val),
             TestValue::Boolean(val) => return test_boolean_literal(expr, *val),
@@ -735,10 +761,13 @@ mod tests {
         }
     }
 
-    fn test_integer_literal(expr: &dyn Expression, value: i64) -> bool {
-        let Some(int_literal) = expr.as_any().downcast_ref::<IntegerLiteral>() else {
-            eprintln!("expr is not ast::IntegerLiteral. got = {:?}", expr);
-            return false
+    fn test_integer_literal(expr: &ExpressionType, value: i64) -> bool {
+        let int_literal = match expr {
+            ExpressionType::IntegerLiteral(int_literal) => int_literal,
+            _ => {
+                eprintln!("expr is not ast::IntegerLiteral. got = {:?}", expr);
+                return false
+            }
         };
 
         if int_literal.value != value {
@@ -754,10 +783,13 @@ mod tests {
         return true
     }
 
-    fn test_boolean_literal(expr: &dyn Expression, value: bool) -> bool {
-        let Some(bool_val) = expr.as_any().downcast_ref::<Boolean>() else {
-            eprintln!("expr is not ast::Boolean. got = {:?}", expr);
-            return false
+    fn test_boolean_literal(expr: &ExpressionType, value: bool) -> bool {
+        let bool_val = match expr {
+            ExpressionType::Boolean(bool_val) => bool_val,
+            _ => {
+                eprintln!("expr is not ast::Boolean. got = {:?}", expr);
+                return false
+            }
         };
 
         if bool_val.value != value {

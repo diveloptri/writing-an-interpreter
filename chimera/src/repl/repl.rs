@@ -1,7 +1,8 @@
 use std::io::{self, Write};
 use crate::evaluator::evaluator;
 use crate::lexer::lexer::Lexer;
-use crate::object::object::{Environment, Object};
+use crate::object::object::Object;
+use crate::object::environment::Environment;
 use crate::parser::parser;
 
 pub const PROMPT: &'static str = ">> ";

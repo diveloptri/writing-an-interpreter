@@ -1,20 +1,20 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::ast::{Identifier, LetStatement, Node, Program};
+    use crate::ast::ast::{ExpressionType, Identifier, LetStatement, Node, Program, StatementType};
     use crate::token::token::{self, Token};
 
 
     #[test]
     fn test_string() {
         let program = Program{
-            statements: vec![Box::new(
+            statements: vec![StatementType::Let(
                 LetStatement{
                     token: Token { token_type: token::LET, literal: String::from("let") },
                     name: Identifier{
                         token: Token { token_type: token::IDENT, literal: String::from("myVariable") },
                         value: String::from("myVariable"),
                     },
-                    value: Some(Box::new(Identifier {
+                    value: Some(ExpressionType::Identifier(Identifier {
                         token: Token { token_type: token::IDENT, literal: String::from("anotherVariable") },
                         value: String::from("anotherVariable"),
                     })),

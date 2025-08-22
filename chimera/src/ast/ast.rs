@@ -16,8 +16,80 @@ pub trait Expression: Node + Any + Debug {
     fn expression_node(&self);
 }
 
+#[derive(Debug, Clone)]
+pub enum StatementType {
+    Let(LetStatement),
+    Return(ReturnStatement),
+    Expression(ExpressionStatement),
+}
+
+impl Node for StatementType {
+    fn token_literal(&self) -> String {
+        match self {
+            StatementType::Let(stmt) => stmt.token_literal(),
+            StatementType::Return(stmt) => stmt.token_literal(),
+            StatementType::Expression(stmt) => stmt.token_literal(),
+        }
+    }
+
+    fn string(&self) -> String {
+        match self {
+            StatementType::Let(stmt) => stmt.string(),
+            StatementType::Return(stmt) => stmt.string(),
+            StatementType::Expression(stmt) => stmt.string(),
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Debug, Clone)]
+pub enum ExpressionType {
+    Identifier(Identifier),
+    IntegerLiteral(IntegerLiteral),
+    Boolean(Boolean),
+    PrefixExpression(PrefixExpressionWrapped),
+    InfixExpression(InfixExpressionWrapped),
+    IfExpression(IfExpressionWrapped),
+    FunctionLiteral(FunctionLiteral),
+    CallExpression(CallExpressionWrapped),
+    BlockStatement(BlockStatement),
+}
+
+impl Node for ExpressionType {
+    fn token_literal(&self) -> String {
+        match self {
+            ExpressionType::Identifier(expr) => expr.token_literal(),
+            ExpressionType::IntegerLiteral(expr) => expr.token_literal(),
+            ExpressionType::Boolean(expr) => expr.token_literal(),
+            ExpressionType::PrefixExpression(expr) => expr.token_literal(),
+            ExpressionType::InfixExpression(expr) => expr.token_literal(),
+            ExpressionType::IfExpression(expr) => expr.token_literal(),
+            ExpressionType::FunctionLiteral(expr) => expr.token_literal(),
+            ExpressionType::CallExpression(expr) => expr.token_literal(),
+            ExpressionType::BlockStatement(expr) => expr.token_literal(),
+        }
+    }
+    
+    fn string(&self) -> String {
+        match self {
+            ExpressionType::Identifier(expr) => expr.string(),
+            ExpressionType::IntegerLiteral(expr) => expr.string(),
+            ExpressionType::Boolean(expr) => expr.string(),
+            ExpressionType::PrefixExpression(expr) => expr.string(),
+            ExpressionType::InfixExpression(expr) => expr.string(),
+            ExpressionType::IfExpression(expr) => expr.string(),
+            ExpressionType::FunctionLiteral(expr) => expr.string(),
+            ExpressionType::CallExpression(expr) => expr.string(),
+            ExpressionType::BlockStatement(expr) => expr.string(),
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any { self }
+}
+
 pub struct Program {
-    pub statements: Vec<Box<dyn Statement>>,
+    pub statements: Vec<StatementType>,
 }
 
 impl Node for Program {
@@ -40,11 +112,11 @@ impl Node for Program {
     fn as_any(&self) -> &dyn Any { self }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LetStatement {
     pub token: Token,
     pub name: Identifier,
-    pub value: Option<Box<dyn Expression>>,
+    pub value: Option<ExpressionType>,
 }
 
 impl Statement for LetStatement {
@@ -74,7 +146,7 @@ impl Expression for LetStatement{
     fn expression_node(&self) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub token: Token,
     pub value: String
@@ -96,10 +168,10 @@ impl Expression for Identifier {
     fn expression_node(&self) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnStatement {
     pub token: Token,
-    pub return_value: Option<Box<dyn Expression>>,
+    pub return_value: Option<ExpressionType>,
 }
 
 impl Statement for ReturnStatement {
@@ -129,10 +201,10 @@ impl Expression for ReturnStatement{
     fn expression_node(&self) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExpressionStatement {
     pub token: Token,
-    pub expression: Option<Box<dyn Expression>>,
+    pub expression: Option<ExpressionType>,
 }
 
 impl Statement for ExpressionStatement {
@@ -159,7 +231,7 @@ impl Expression for ExpressionStatement {
     fn expression_node(&self) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: i64,
@@ -181,15 +253,15 @@ impl Node for IntegerLiteral {
     fn as_any(&self) -> &dyn Any { self }
 }
 
-#[derive(Debug)]
-pub struct PrefixExpression {
+#[derive(Debug, Clone)]
+pub struct PrefixExpressionWrapped {
     pub token: Token,
     pub operator: String,
-    pub right: Box<dyn Expression>
+    pub right: Box<ExpressionType>
 
 }
 
-impl Node for PrefixExpression {
+impl Node for PrefixExpressionWrapped {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -201,19 +273,19 @@ impl Node for PrefixExpression {
     fn as_any(&self) -> &dyn Any { self }
 }
 
-impl Expression for PrefixExpression {
+impl Expression for PrefixExpressionWrapped {
     fn expression_node(&self) {}
 }
 
-#[derive(Debug)]
-pub struct InfixExpression {
+#[derive(Debug, Clone)]
+pub struct InfixExpressionWrapped {
     pub token: Token,
-    pub left: Box<dyn Expression>,
+    pub left: Box<ExpressionType>,
     pub operator: String,
-    pub right: Box<dyn Expression>
+    pub right: Box<ExpressionType>
 }
 
-impl Node for InfixExpression {
+impl Node for InfixExpressionWrapped {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
@@ -225,11 +297,11 @@ impl Node for InfixExpression {
     fn as_any(&self) -> &dyn Any { self }
 }
 
-impl Expression for InfixExpression {
+impl Expression for InfixExpressionWrapped {
     fn expression_node(&self) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Boolean {
     pub token: Token,
     pub value: bool,
@@ -251,10 +323,10 @@ impl Expression for Boolean {
     fn expression_node(&self) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BlockStatement {
     pub token: Token,
-    pub statements: Vec<Box<dyn Statement>>
+    pub statements: Vec<StatementType>
 }
 
 impl Expression for BlockStatement {
@@ -277,19 +349,19 @@ impl Node for BlockStatement {
     fn as_any(&self) -> &dyn Any { self }
 }
 
-#[derive(Debug)]
-pub struct IfExpression {
+#[derive(Debug, Clone)]
+pub struct IfExpressionWrapped {
     pub token: Token,
-    pub condition: Box<dyn Expression>,
+    pub condition: Box<ExpressionType>,
     pub consequence: BlockStatement,
     pub alternative: Option<BlockStatement>,
 }
 
-impl Expression for IfExpression {
+impl Expression for IfExpressionWrapped {
     fn expression_node(&self) {}
 }
 
-impl Node for IfExpression {
+impl Node for IfExpressionWrapped {
     fn token_literal(&self) -> String{
         self.token.literal.clone()
     }
@@ -307,7 +379,7 @@ impl Node for IfExpression {
     fn as_any(&self) -> &dyn Any { self }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionLiteral {
     pub token: Token,
     pub parameters: Vec<Identifier>,
@@ -332,24 +404,24 @@ impl Node for FunctionLiteral {
     fn as_any(&self) -> &dyn Any { self }
 }
 
-#[derive(Debug)]
-pub struct CallExpression {
+#[derive(Debug, Clone)]
+pub struct CallExpressionWrapped {
     pub token: Token,
-    pub function: Box<dyn Expression>,
-    pub arguments: Vec<Box<dyn Expression>>
+    pub function: Box<ExpressionType>,
+    pub arguments: Vec<ExpressionType>
 }
 
-impl Expression for CallExpression {
+impl Expression for CallExpressionWrapped {
     fn expression_node(&self) {}
 }
 
-impl Node for CallExpression {
+impl Node for CallExpressionWrapped {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
 
     fn string(&self) -> String {
-        let args = self.arguments.iter().map(|args| args.string()).collect::<Vec<String>>().join(", ");
+        let args = self.arguments.iter().map(|arg| arg.string()).collect::<Vec<String>>().join(", ");
 
         format!("{}({})", self.function.string(), args) 
     }

@@ -1,106 +1,71 @@
-use crate::ast::ast::{self};
-use crate::object::object;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::ast::ast::{self, ExpressionType, StatementType};
+use crate::object::environment::Environment;
 use crate::object::object::Object;
 
-
-pub const TRUE: Object = object::Object::Boolean(true);
-pub const FALSE: Object = object::Object::Boolean(false);
-pub const NULL: Object = object::Object::Null;
-
-enum NodeType<'a> {
-    Program(&'a ast::Program),
-    ExpressionStatement(&'a ast::ExpressionStatement),
-    IntegerLiteral(&'a ast::IntegerLiteral),
-    Boolean(&'a ast::Boolean),
-    PrefixExpression(&'a ast::PrefixExpression),
-    InfixExpression(&'a ast::InfixExpression),
-    BlockStatement(&'a ast::BlockStatement),
-    IfExpression(&'a ast::IfExpression),
-    ReturnStatement(&'a ast::ReturnStatement),
-    LetStatement(&'a ast::LetStatement),
-    Identifier(&'a ast::Identifier),
-    Unknown,
+pub fn eval(program: &ast::Program, env: &mut Environment) -> Object {
+    eval_program(program, env)
 }
 
-fn classify_node(node: &dyn ast::Node) -> NodeType<'_> {
-    if let Some(program) = node.as_any().downcast_ref::<ast::Program>() {
-        NodeType::Program(program)
-    } else if let Some(expr_stmt) = node.as_any().downcast_ref::<ast::ExpressionStatement>() {
-        NodeType::ExpressionStatement(expr_stmt)
-    } else if let Some(int_literal) = node.as_any().downcast_ref::<ast::IntegerLiteral>() {
-        NodeType::IntegerLiteral(int_literal)
-    } else if let Some(boolean) = node.as_any().downcast_ref::<ast::Boolean>() {
-        NodeType::Boolean(boolean)
-    } else if let Some(prefix_expr) = node.as_any().downcast_ref::<ast::PrefixExpression>() {
-        NodeType::PrefixExpression(prefix_expr)
-    } else if let Some(infix_expr) = node.as_any().downcast_ref::<ast::InfixExpression>() {
-        NodeType::InfixExpression(infix_expr)
-    } else if let Some(block_stmt) = node.as_any().downcast_ref::<ast::BlockStatement>() {
-        NodeType::BlockStatement(block_stmt)
-    } else if let Some(if_expr) = node.as_any().downcast_ref::<ast::IfExpression>() {
-        NodeType::IfExpression(if_expr)
-    } else if let Some(return_stmt) = node.as_any().downcast_ref::<ast::ReturnStatement>() {
-        NodeType::ReturnStatement(return_stmt)
-    } else if let Some(let_stmt) = node.as_any().downcast_ref::<ast::LetStatement>() {
-        NodeType::LetStatement(let_stmt)
-    } else if let Some(identifier) = node.as_any().downcast_ref::<ast::Identifier>() {
-        NodeType::Identifier(identifier)
-    } else {
-        NodeType::Unknown
-    }
-}
-
-pub fn eval(node: &dyn ast::Node, env: &mut object::Environment) -> object::Object {
-    match classify_node(node) {
-        NodeType::Program(program) => eval_program(&program, env),
-        NodeType::ExpressionStatement(expr_stmt) => {
-            if let Some(expr) = &expr_stmt.expression {
-                eval(&**expr, env)
-            } else {
-                object::Object::Null
-            }
-        },
-        NodeType::IntegerLiteral(int_literal) => object::Object::Integer(int_literal.value),
-        NodeType::Boolean(boolean) => native_bool_to_boolean_object(boolean.value),
-        NodeType::PrefixExpression(prefix_expr) => {
-            let right = eval(&*prefix_expr.right, env);
+fn eval_expression_type(expr: &ExpressionType, env: &mut Environment) -> Object {
+    match expr {
+        ExpressionType::Identifier(identifier) => eval_identifier(identifier, env),
+        ExpressionType::IntegerLiteral(int_literal) => Object::Integer(int_literal.value),
+        ExpressionType::Boolean(boolean) => native_bool_to_boolean_object(boolean.value),
+        ExpressionType::PrefixExpression(prefix_expr) => {
+            let right = eval_expression_type(&*prefix_expr.right, env);
             if is_error(&right) {
                 return right
             }
             eval_prefix_expression(&prefix_expr.operator, right)
         },
-        NodeType::InfixExpression(infix_expr) => {
-            let left= eval(&*infix_expr.left, env);
+        ExpressionType::InfixExpression(infix_expr) => {
+            let left= eval_expression_type(&*infix_expr.left, env);
             if is_error(&left) {
                 return left
             }
 
-            let right = eval(&*infix_expr.right, env);
+            let right = eval_expression_type(&*infix_expr.right, env);
             if is_error(&right) {
                 return right
             }
 
             eval_infix_expression(&infix_expr.operator, left, right)
         },
-        NodeType::BlockStatement(block_stmt) => eval_block_statements(block_stmt, env),
-        NodeType::IfExpression(if_expr) => eval_if_expression(if_expr, env),
-        NodeType::ReturnStatement(return_stmt) => {
-            let return_val = match &return_stmt.return_value {
-                Some(expr) => eval(&**expr, env),
-                None => NULL
+        ExpressionType::IfExpression(if_expr) => eval_if_expression(if_expr, env),
+        ExpressionType::FunctionLiteral(function_literal) => {
+            Object::Function(
+                function_literal.parameters.clone(),
+                function_literal.body.clone(),
+                Rc::new(RefCell::new(env.clone()))
+            )
+        },
+        ExpressionType::CallExpression(call_expr) => {
+            let function = eval_expression_type(&*call_expr.function, env);
+
+            if is_error(&function) {
+                return function
             };
 
-            if is_error(&return_val) {
-                return return_val
+            let arguments = eval_expression(&call_expr.arguments, env);
+            if arguments.len() == 1 && is_error(&arguments[0]) {
+                return arguments[0].clone();
             }
-
-            object::Object::ReturnValue(Box::new(return_val))
+            apply_function(function, arguments)
         },
-        NodeType::LetStatement(let_stmt) => {
+        ExpressionType::BlockStatement(block_stmt) => eval_block_statements(block_stmt, env),
+    }
+}
+
+fn eval_statement_type(stmt: &StatementType, env: &mut Environment) -> Object {
+    match stmt {
+        StatementType::Let(let_stmt) => {
             let node_name_val = let_stmt.name.value.clone();
             let let_val = match &let_stmt.value {
-                Some(let_stmt_val) => eval(&**let_stmt_val, env),
-                None => NULL
+                Some(let_stmt_val) => eval_expression_type(let_stmt_val, env),
+                None => Object::Null
             };
 
             if is_error(&let_val) {
@@ -109,18 +74,33 @@ pub fn eval(node: &dyn ast::Node, env: &mut object::Environment) -> object::Obje
             let result = let_val.clone();
             env.set(node_name_val, let_val);
             result
+        },
+        StatementType::Return(return_stmt) => {
+            let return_val = match &return_stmt.return_value {
+                Some(expr) => eval_expression_type(expr, env),
+                None => Object::Null
+            };
+
+            if is_error(&return_val) {
+                return return_val
+            }
+
+            Object::ReturnValue(Box::new(return_val))
+        },
+        StatementType::Expression(expr_stmt) => {
+            if let Some(expr) = &expr_stmt.expression {
+                eval_expression_type(expr, env)
+            } else {
+                Object::Null
+            }
         }
-        NodeType::Identifier(identifier) => {
-            eval_identifier(identifier, env)
-        }
-        NodeType::Unknown => object::Object::Null
     }
 }
 
-fn eval_program(program: &ast::Program, env: &mut object::Environment) -> object::Object {
+fn eval_program(program: &ast::Program, env: &mut Environment) -> Object {
     let mut result = Object::Null;
     for stmt in &program.statements {
-        result = eval(&**stmt, env);
+        result = eval_statement_type(stmt, env);
         
         if is_error(&result) {
             return result
@@ -133,10 +113,10 @@ fn eval_program(program: &ast::Program, env: &mut object::Environment) -> object
     result
 }
 
-fn eval_block_statements(block: &ast::BlockStatement, env: &mut object::Environment) -> object::Object {
+fn eval_block_statements(block: &ast::BlockStatement, env: &mut Environment) -> Object {
     let mut result = Object::Null;
     for stmt in &block.statements {
-        result = eval(&**stmt, env);
+        result = eval_statement_type(stmt, env);
 
         if is_error(&result) {
             return result
@@ -149,14 +129,14 @@ fn eval_block_statements(block: &ast::BlockStatement, env: &mut object::Environm
     result
 }
 
-fn native_bool_to_boolean_object(input: bool) -> object::Object {
+fn native_bool_to_boolean_object(input: bool) -> Object {
     if input {
-        return TRUE
+        return Object::Boolean(true)
     }
-    FALSE
+    Object::Boolean(false)
 }
 
-fn eval_prefix_expression(operator: &str, right: object::Object) -> object::Object {
+fn eval_prefix_expression(operator: &str, right: Object) -> Object {
     match operator {
         "!" => eval_bang_operator_expression(right),
         "-" => eval_minus_prefix_operator_expression(right),
@@ -164,23 +144,23 @@ fn eval_prefix_expression(operator: &str, right: object::Object) -> object::Obje
     }
 }
 
-fn eval_bang_operator_expression(right: object::Object) -> object::Object {
+fn eval_bang_operator_expression(right: Object) -> Object {
     match right {
-        TRUE => FALSE,
-        FALSE => TRUE,
-        NULL => TRUE,
-        _ => FALSE
+        Object::Boolean(true) => Object::Boolean(false),
+        Object::Boolean(false) => Object::Boolean(true),
+        Object::Null => Object::Boolean(true),
+        _ => Object::Boolean(false)
     }
 }
 
-fn eval_minus_prefix_operator_expression(right: object::Object) -> object::Object {
+fn eval_minus_prefix_operator_expression(right: Object) -> Object {
     match right {
-        object::Object::Integer(val) => object::Object::Integer(-val),
+        Object::Integer(val) => Object::Integer(-val),
         _ => new_error(format!("unknown operator: -{}", right.object_type()))
     }
 }
 
-fn eval_infix_expression(operator: &str, left: object::Object, right: object::Object) -> object::Object {
+fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Object {
     let left_type = left.object_type();
     let right_type = right.object_type();
 
@@ -189,7 +169,7 @@ fn eval_infix_expression(operator: &str, left: object::Object, right: object::Ob
     }
 
     match (left, right, operator) {
-        (object::Object::Integer(l), object::Object::Integer(r), _) => {
+        (Object::Integer(l), Object::Integer(r), _) => {
             eval_integer_infix_expression(operator, l, r)
         },
         (l, r, "==") => native_bool_to_boolean_object(l == r),
@@ -198,12 +178,12 @@ fn eval_infix_expression(operator: &str, left: object::Object, right: object::Ob
     }
 }
 
-fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> object::Object {
+fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> Object {
     match operator {
-        "+" => object::Object::Integer(left + right),
-        "-" => object::Object::Integer(left - right),
-        "*" => object::Object::Integer(left * right),
-        "/" => object::Object::Integer(left / right),
+        "+" => Object::Integer(left + right),
+        "-" => Object::Integer(left - right),
+        "*" => Object::Integer(left * right),
+        "/" => Object::Integer(left / right),
         "<" => native_bool_to_boolean_object(left < right),
         ">" => native_bool_to_boolean_object(left > right),
         "==" => native_bool_to_boolean_object(left == right),
@@ -212,41 +192,85 @@ fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> objec
     }
 }
 
-fn eval_if_expression(if_expr: &ast::IfExpression, env: &mut object::Environment) -> object::Object {
-    let condition = eval(&*if_expr.condition, env);
+fn eval_if_expression(if_expr: &ast::IfExpressionWrapped, env: &mut Environment) -> Object {
+    let condition = eval_expression_type(&*if_expr.condition, env);
     if is_error(&condition) {
         return condition
     }
 
     if is_truthy(condition) {
-        return eval(&if_expr.consequence, env)
+        return eval_block_statements(&if_expr.consequence, env)
     } else if let Some(alternative) = &if_expr.alternative {
-        return eval(alternative, env)
+        return eval_block_statements(alternative, env)
     } else {
-        return NULL
+        return Object::Null
     }
 }
 
-fn eval_identifier(node: &ast::Identifier, env: &mut object::Environment) -> object::Object {
+fn eval_identifier(node: &ast::Identifier, env: &mut Environment) -> Object {
     match env.get(&node.value) {
         Some(value) => value.clone(),
         None => new_error(format!("identifier not found: {}", node.value))
     }
 }
 
-fn is_truthy(object: object::Object) -> bool {
+fn eval_expression(expressions: &[ExpressionType], env: &mut Environment) -> Vec<Object> {
+    let mut result = Vec::new();
+
+    for expr in expressions.iter() {
+        let evaluated = eval_expression_type(expr, env);
+
+        if is_error(&evaluated) {
+            return vec![evaluated]
+        }
+
+        result.push(evaluated);
+    }
+    result
+}
+
+fn is_truthy(object: Object) -> bool {
     match object {
-        NULL => false,
-        TRUE => true,
-        FALSE => false,
+        Object::Null => false,
+        Object::Boolean(true) => true,
+        Object::Boolean(false) => false,
         _ => true
     }
 }
 
-fn new_error(message: String) -> object::Object {
+fn new_error(message: String) -> Object {
     Object::Error(message)
 }
 
 fn is_error(object: &Object) -> bool {
     matches!(object, Object::Error(_))
+}
+
+fn apply_function(function: Object, args: Vec<Object>) -> Object {
+    match function {
+        Object::Function(params, body, env_rc ) => {
+            let mut extended_env = extend_function_env(&params, args, env_rc);
+            let evaluated = eval_block_statements(&body, &mut extended_env);
+            unwrap_return_value(evaluated)
+        },
+        _ => new_error(format!("not a function: {}", function.object_type()))
+    }
+}
+
+fn extend_function_env(params: &[ast::Identifier], args: Vec<Object>, outer_env: Rc<RefCell<Environment>>) -> Environment {
+    let mut extended_env = Environment::new_enclosed(outer_env.borrow().clone());
+
+    for (param_idx, param) in params.iter().enumerate() {
+        if let Some(arg) = args.get(param_idx) {
+            extended_env.set(param.value.clone(), arg.clone());
+        }
+    }
+    extended_env
+}
+
+fn unwrap_return_value(object: Object) -> Object {
+    match object {
+        Object::ReturnValue(return_val) => *return_val,
+        _ => object
+    }
 }
