@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::lexer::lexer::Lexer;
-use crate::ast::ast::{self, BlockStatement, CallExpressionWrapped, ExpressionStatement, ExpressionType, FunctionLiteral, Identifier, IfExpressionWrapped, InfixExpressionWrapped, IntegerLiteral, LetStatement, PrefixExpressionWrapped, Program, ReturnStatement, StatementType};
+use crate::ast::ast::{self, BlockStatement, CallExpressionWrapped, ExpressionStatement, ExpressionType, FunctionLiteral, Identifier, IfExpressionWrapped, InfixExpressionWrapped, IntegerLiteral, LetStatement, PrefixExpressionWrapped, Program, ReturnStatement, StatementType, StringLiteral};
 use crate::token::token::{self, Token, TokenType};
 
 
@@ -69,6 +69,7 @@ impl Parser {
         let mut left_exp = match self.cur_token.token_type {
             token::IDENT => self.parse_identifier(),
             token::INT => self.parse_integer_literal(),
+            token::STRING => self.parse_string_literal(),
             token::BANG | token::MINUS => self.parse_prefix_expression(),
             token::TRUE | token::FALSE => self.parse_boolean(),
             token::LPAREN => self.parse_grouped_expression(),
@@ -321,6 +322,15 @@ impl Parser {
             IntegerLiteral{
                 token: self.cur_token.clone(),
                 value: int_from_literal
+            }
+        ))
+    }
+
+    pub fn parse_string_literal(&mut self) -> Option<ExpressionType> {
+        Some(ExpressionType::StringLiteral(
+            StringLiteral{
+                token: self.cur_token.clone(),
+                value: self.cur_token.literal.clone()
             }
         ))
     }

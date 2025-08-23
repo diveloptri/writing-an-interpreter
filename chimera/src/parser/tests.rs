@@ -690,6 +690,35 @@ mod tests {
         } 
     }
 
+    #[test]
+    fn test_string_literal_expression() {
+        let input = String::from(r#""hello world";"#);
+
+        let lexer = lexer::Lexer::new(input.to_string());
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
+        };
+
+        let string_literal = match &stmt.expression {
+            Some(ExpressionType::StringLiteral(string_lit)) => string_lit,
+            _ => panic!("stmt.expression is not ast::StringLiteral. got = {:?}", stmt.expression) 
+        };
+
+        assert_eq!(
+            string_literal.value,
+            "hello world",
+            "string_literal.value is not = {}. got = {}",
+            "hello world",
+            string_literal.value
+        )
+
+    }
+
     // Helper
     fn test_identifier(expr: &ExpressionType, value: &str) -> bool {
         match expr {

@@ -46,6 +46,7 @@ impl Node for StatementType {
 #[derive(Debug, Clone)]
 pub enum ExpressionType {
     Identifier(Identifier),
+    StringLiteral(StringLiteral),
     IntegerLiteral(IntegerLiteral),
     Boolean(Boolean),
     PrefixExpression(PrefixExpressionWrapped),
@@ -60,6 +61,7 @@ impl Node for ExpressionType {
     fn token_literal(&self) -> String {
         match self {
             ExpressionType::Identifier(expr) => expr.token_literal(),
+            ExpressionType::StringLiteral(expr) => expr.token_literal(),
             ExpressionType::IntegerLiteral(expr) => expr.token_literal(),
             ExpressionType::Boolean(expr) => expr.token_literal(),
             ExpressionType::PrefixExpression(expr) => expr.token_literal(),
@@ -74,6 +76,7 @@ impl Node for ExpressionType {
     fn string(&self) -> String {
         match self {
             ExpressionType::Identifier(expr) => expr.string(),
+            ExpressionType::StringLiteral(expr) => expr.string(),
             ExpressionType::IntegerLiteral(expr) => expr.string(),
             ExpressionType::Boolean(expr) => expr.string(),
             ExpressionType::PrefixExpression(expr) => expr.string(),
@@ -424,6 +427,28 @@ impl Node for CallExpressionWrapped {
         let args = self.arguments.iter().map(|arg| arg.string()).collect::<Vec<String>>().join(", ");
 
         format!("{}({})", self.function.string(), args) 
+    }
+
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Debug, Clone)]
+pub struct StringLiteral {
+    pub token: Token,
+    pub value: String,
+}
+
+impl Expression for StringLiteral {
+    fn expression_node(&self) {}
+}
+
+impl Node for StringLiteral {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        self.token.literal.clone()
     }
 
     fn as_any(&self) -> &dyn Any { self }
