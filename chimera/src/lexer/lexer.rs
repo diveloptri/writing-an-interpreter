@@ -63,6 +63,10 @@ impl Lexer {
             b')' =>  token = new_token(RPAREN, self.character),
             b'{' =>  token = new_token(LBRACE, self.character),
             b'}' =>  token = new_token(RBRACE, self.character),
+            b'"' => {
+                let literal = self.read_string();
+                token = Token{token_type: STRING, literal: literal}
+            }
             _ => {
                 if self.character.is_ascii_alphabetic(){
                     token.literal = self.read_identifier();
@@ -128,6 +132,21 @@ impl Lexer {
                 .nth(self.read_position as usize)
                 .unwrap() as u8
         }
+    }
+
+    fn read_string(&mut self) -> String {
+        let position = self.position + 1;
+        loop {
+            self.read_char();
+            if self.character == b'"' || self.character == 0 {
+                break;
+            }
+        }
+        self.input.get(
+            position as usize
+            ..
+            self.position as usize
+        ).unwrap().to_string()
     }
 }
 

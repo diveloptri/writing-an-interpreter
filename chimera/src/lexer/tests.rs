@@ -25,6 +25,8 @@ mod tests {
 
             10 == 10;
             10 != 9;
+            "foobar"
+            "foo bar"
             "#
         );
         let mut lexer = crate::lexer::lexer::Lexer::new(input);
@@ -129,6 +131,9 @@ mod tests {
         test_token_vec.push(Token{ token_type: NQ, literal: String::from("!=")});
         test_token_vec.push(Token{ token_type: INT, literal: String::from("9")});
         test_token_vec.push(Token{ token_type: SEMICOLON, literal: String::from(";")});
+
+        test_token_vec.push(Token{ token_type: STRING, literal: String::from("foobar")});
+        test_token_vec.push(Token{ token_type: STRING, literal: String::from("foo bar")});
 
         test_token_vec.push(Token{ token_type: EOF, literal: String::from("")});
 

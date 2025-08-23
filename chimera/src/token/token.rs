@@ -47,6 +47,9 @@ pub const IF: &str = "IF";
 pub const ELSE: &str = "ELSE";
 pub const RETURN: &str = "RETURN";
 
+// Datatypes
+pub const STRING: &str = "STRING";
+
 const KEYWORDS: Map<&str, TokenType> = phf_map! {
     "fn" => FUNCTION,
     "let" => LET,
