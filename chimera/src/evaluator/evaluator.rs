@@ -13,6 +13,7 @@ fn eval_expression_type(expr: &ExpressionType, env: &mut Environment) -> Object 
     match expr {
         ExpressionType::Identifier(identifier) => eval_identifier(identifier, env),
         ExpressionType::IntegerLiteral(int_literal) => Object::Integer(int_literal.value),
+        ExpressionType::StringLiteral(string_literal) => Object::String(string_literal.value.clone()),
         ExpressionType::Boolean(boolean) => native_bool_to_boolean_object(boolean.value),
         ExpressionType::PrefixExpression(prefix_expr) => {
             let right = eval_expression_type(&*prefix_expr.right, env);

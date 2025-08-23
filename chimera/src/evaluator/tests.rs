@@ -375,4 +375,23 @@ mod tests {
             test_integer_object(test_eval(input), 4)
         )
     }
+
+    #[test]
+    fn test_string_literal() {
+        let input = String::from(r#""Hello World!""#);
+
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            Object::String(str) => {
+                assert_eq!(
+                    str,
+                    "Hello World!",
+                    "String has wrong value. got = {}",
+                    str
+                )
+            },
+            _ => panic!("object is not String. got = {:?}", evaluated)
+        }
+    }
 }
