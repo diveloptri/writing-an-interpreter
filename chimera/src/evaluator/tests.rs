@@ -262,6 +262,7 @@ mod tests {
             ErrorTest{input: "if (10 > 1) { true + false; }", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
             ErrorTest{input: "if (10 > 1) { if (10 > 1) { return true + false; } return 1; }", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
             ErrorTest{input: "foobar", expected_message: "identifier not found: foobar"},
+            ErrorTest{input: r#""Hello" - "World""#, expected_message: "unknown operator: STRING - STRING"},
         ];
 
         for test in error_handling_tests.iter() {
@@ -379,7 +380,6 @@ mod tests {
     #[test]
     fn test_string_literal() {
         let input = String::from(r#""Hello World!""#);
-
         let evaluated = test_eval(input);
 
         match evaluated {
@@ -393,5 +393,24 @@ mod tests {
             },
             _ => panic!("object is not String. got = {:?}", evaluated)
         }
+    }
+
+    #[test]
+    fn test_string_concatenation() {
+        let input = String::from(r#""Hello" + " " + "World!""#);
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            Object::String(str) => {
+                assert_eq!(
+                    str,
+                    "Hello World!",
+                    "String has wrong value. got = {}",
+                    str
+                )
+            },
+            _ => panic!("object is not String. got = {:?}", evaluated)
+        }
+
     }
 }

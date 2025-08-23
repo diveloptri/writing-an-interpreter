@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::ast::ast::{self, ExpressionType, StatementType};
 use crate::object::environment::Environment;
-use crate::object::object::Object;
+use crate::object::object::{Object, STRING_OBJ};
 
 pub fn eval(program: &ast::Program, env: &mut Environment) -> Object {
     eval_program(program, env)
@@ -169,6 +169,10 @@ fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Object 
         return new_error(format!("type mismatch: {} {} {}", left_type, operator, right_type))
     }
 
+    if left_type == STRING_OBJ && right_type == STRING_OBJ {
+        return eval_string_infix_expression(operator, left, right)
+    }
+
     match (left, right, operator) {
         (Object::Integer(l), Object::Integer(r), _) => {
             eval_integer_infix_expression(operator, l, r)
@@ -273,5 +277,18 @@ fn unwrap_return_value(object: Object) -> Object {
     match object {
         Object::ReturnValue(return_val) => *return_val,
         _ => object
+    }
+}
+
+fn eval_string_infix_expression(operator: &str, left: Object, right: Object) -> Object {
+    if operator != "+" {
+        return new_error(format!("unknown operator: {} {} {}", 
+            left.object_type(), operator, right.object_type()
+        ))
+    }
+
+    match (left, right) {
+        (Object::String(l), Object::String(r)) => Object::String(format!("{}{}", l, r)),
+        _ => Object::Null
     }
 }
