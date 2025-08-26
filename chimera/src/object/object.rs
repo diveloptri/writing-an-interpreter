@@ -13,9 +13,11 @@ pub const INTEGER_OBJ: &str = "INTEGER";
 pub const BOOLEAN:  &str = "BOOLEAN";
 pub const NULL: &str = "NULL";
 pub const STRING_OBJ: &str = "STRING";
+pub const BUILTIN_OBJ: &str = "BUILTIN";
 
 #[derive(Debug, Clone)]
 pub enum Object {
+    Builtin(String),
     Function(Vec<ast::Identifier>, ast::BlockStatement, Rc<RefCell<Environment>>),
     Error(String),
     ReturnValue(Box<Object>),
@@ -33,6 +35,7 @@ impl PartialEq for Object {
             (Object::Null, Object::Null) => true,
             (Object::Error(a), Object::Error(b)) => a == b,
             (Object::Function(..), Object::Function(..)) => false,
+            (Object::Builtin(_), Object::Builtin(_)) => false,
             _ => false,
         }
     }
@@ -40,6 +43,7 @@ impl PartialEq for Object {
 impl Object {
     pub fn object_type(&self) -> ObjectType {
         match self {
+            Object::Builtin(_) => BUILTIN_OBJ,
             Object::Function(..) => FUNCTION_OBJ,
             Object::Error(_) => ERROR_OBJ,
             Object::ReturnValue(_) => RETURN_VALUE_OBJ,
@@ -52,6 +56,7 @@ impl Object {
 
     pub fn inspect(&self) -> String {
         match self {
+            Object::Builtin(_) => "builtin function".to_string(),
             Object::Function(parameters, body, _)=> { 
                 format!("fn({:?}) {{\n {} \n}}",
                 parameters.iter().map(|val| format!("{},", val.string())), &*body.string())

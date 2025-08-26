@@ -146,6 +146,7 @@ mod tests {
     #[derive(Debug, Clone, PartialEq)]
     enum TestValue {
         Integer(i64),
+        Error(String),
         Null,
     }
 
@@ -178,7 +179,8 @@ mod tests {
                     assert!(
                         test_null_object(evaluated)
                     );
-                }
+                },
+                TestValue::Error(_) => (),
             }
         }
     }
@@ -413,4 +415,41 @@ mod tests {
         }
 
     }
+
+    #[test]
+    fn test_builtin_functions() {
+        struct BuiltinFunctionsTest{
+            input: &'static str,
+            expected: TestValue,
+        }
+
+        let builtin_functions_test= [
+            BuiltinFunctionsTest{input: r#"len("")"#, expected: TestValue::Integer(0)},
+            BuiltinFunctionsTest{input: r#"len("four")"#, expected: TestValue::Integer(4)},
+            BuiltinFunctionsTest{input: r#"len("hello world")"#, expected: TestValue::Integer(11)},
+            BuiltinFunctionsTest{input: r#"len(1)"#, expected: TestValue::Error(String::from("argument to `len` not supported, got = INTEGER"))},
+            BuiltinFunctionsTest{input: r#"len("one", "two")"#, expected: TestValue::Error(String::from("wrong number of arguments. got = 2, want = 1"))}
+        ];
+
+        for test in builtin_functions_test.iter() {
+            let evaluated = test_eval(test.input.to_string());
+
+            match &test.expected {
+                TestValue::Integer(int) => {
+                    assert!(test_integer_object(evaluated, *int))
+                },
+                TestValue::Error(expected_msg) => {
+                    match evaluated {
+                        Object::Error(actual_msg) => 
+                            assert_eq!(
+                                &actual_msg,
+                                expected_msg,
+                            ),
+                        _ => panic!("Expected error, got = {:?}", evaluated)
+                    }
+                },
+                TestValue::Null => eprintln!("object is not Error. got = {:?}", evaluated),
+                }
+            }
+        }
 }

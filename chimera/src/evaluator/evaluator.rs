@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::ast::ast::{self, ExpressionType, StatementType};
+use crate::evaluator::builtins::builtins;
 use crate::object::environment::Environment;
 use crate::object::object::{Object, STRING_OBJ};
 
@@ -215,7 +216,13 @@ fn eval_if_expression(if_expr: &ast::IfExpressionWrapped, env: &mut Environment)
 fn eval_identifier(node: &ast::Identifier, env: &mut Environment) -> Object {
     match env.get(&node.value) {
         Some(value) => value.clone(),
-        None => new_error(format!("identifier not found: {}", node.value))
+        None => {
+            if is_builtin(&node.value) {
+                Object::Builtin(node.value.to_string())
+            } else {
+                new_error(format!("identifier not found: {}", node.value))
+            }
+        },
     }
 }
 
@@ -243,12 +250,16 @@ fn is_truthy(object: Object) -> bool {
     }
 }
 
-fn new_error(message: String) -> Object {
+pub fn new_error(message: String) -> Object {
     Object::Error(message)
 }
 
 fn is_error(object: &Object) -> bool {
     matches!(object, Object::Error(_))
+}
+
+fn is_builtin(name: &str) -> bool {
+    matches!(name, "len")
 }
 
 fn apply_function(function: Object, args: Vec<Object>) -> Object {
@@ -258,6 +269,7 @@ fn apply_function(function: Object, args: Vec<Object>) -> Object {
             let evaluated = eval_block_statements(&body, &mut extended_env);
             unwrap_return_value(evaluated)
         },
+        Object::Builtin(str) => builtins(&str, &args),
         _ => new_error(format!("not a function: {}", function.object_type()))
     }
 }
