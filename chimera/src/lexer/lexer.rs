@@ -63,6 +63,8 @@ impl Lexer {
             b')' =>  token = new_token(RPAREN, self.character),
             b'{' =>  token = new_token(LBRACE, self.character),
             b'}' =>  token = new_token(RBRACE, self.character),
+            b'[' =>  token = new_token(LBRACKET, self.character),
+            b']' =>  token = new_token(RBRACKET, self.character),
             b'"' => {
                 let literal = self.read_string();
                 token = Token{token_type: STRING, literal: literal}
