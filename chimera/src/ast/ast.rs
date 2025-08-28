@@ -55,6 +55,7 @@ pub enum ExpressionType {
     FunctionLiteral(FunctionLiteral),
     CallExpression(CallExpressionWrapped),
     BlockStatement(BlockStatement),
+    ArrayLiteral(ArrayLiteral),
 }
 
 impl Node for ExpressionType {
@@ -70,6 +71,7 @@ impl Node for ExpressionType {
             ExpressionType::FunctionLiteral(expr) => expr.token_literal(),
             ExpressionType::CallExpression(expr) => expr.token_literal(),
             ExpressionType::BlockStatement(expr) => expr.token_literal(),
+            ExpressionType::ArrayLiteral(expr) => expr.token_literal(),
         }
     }
     
@@ -85,6 +87,7 @@ impl Node for ExpressionType {
             ExpressionType::FunctionLiteral(expr) => expr.string(),
             ExpressionType::CallExpression(expr) => expr.string(),
             ExpressionType::BlockStatement(expr) => expr.string(),
+            ExpressionType::ArrayLiteral(expr) => expr.string(),
         }
     }
 
@@ -449,6 +452,30 @@ impl Node for StringLiteral {
 
     fn string(&self) -> String {
         self.token.literal.clone()
+    }
+
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Debug, Clone)]
+pub struct ArrayLiteral {
+    pub token: Token,
+    pub elements: Vec<ExpressionType>
+}
+
+impl Expression for ArrayLiteral {
+    fn expression_node(&self) {}
+}
+
+impl Node for ArrayLiteral {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        let elements = self.elements.iter().map(|element| element.string()).collect::<Vec<String>>().join(", ");
+
+        format!("[{}]", elements)
     }
 
     fn as_any(&self) -> &dyn Any { self }

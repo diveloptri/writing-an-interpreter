@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::lexer::lexer::Lexer;
-use crate::ast::ast::{self, BlockStatement, CallExpressionWrapped, ExpressionStatement, ExpressionType, FunctionLiteral, Identifier, IfExpressionWrapped, InfixExpressionWrapped, IntegerLiteral, LetStatement, PrefixExpressionWrapped, Program, ReturnStatement, StatementType, StringLiteral};
+use crate::ast::ast::{self, ArrayLiteral, BlockStatement, CallExpressionWrapped, ExpressionStatement, ExpressionType, FunctionLiteral, Identifier, IfExpressionWrapped, InfixExpressionWrapped, IntegerLiteral, LetStatement, PrefixExpressionWrapped, Program, ReturnStatement, StatementType, StringLiteral};
 use crate::token::token::{self, Token, TokenType};
 
 
@@ -75,6 +75,7 @@ impl Parser {
             token::LPAREN => self.parse_grouped_expression(),
             token::IF => self.parse_if_expression(),
             token::FUNCTION => self.parse_function_literal(),
+            token::LBRACKET => self.parse_array_literals(),
             _ => {
                 self.unsupported_prefix_token_error(&self.cur_token.token_type);
                 return None;
@@ -438,41 +439,55 @@ impl Parser {
     }
 
     pub fn parse_call_expression(&mut self, function: ExpressionType) -> Option<ExpressionType> {
-        let expr_arguments = self.parse_call_arguments();
+        let expr_arguments = self.parse_expression_list(token::RPAREN);
 
         Some(ExpressionType::CallExpression(CallExpressionWrapped{
             token: self.cur_token.clone(), function: Box::new(function), arguments: expr_arguments
         }))
     }
 
-    pub fn parse_call_arguments(&mut self) -> Vec<ExpressionType> {
-        if self.peek_token_is(token::RPAREN) {
+    pub fn parse_array_literals(&mut self) -> Option<ExpressionType> {
+        let expr_vec = self.parse_expression_list(token::RBRACKET);
+
+        Some(
+            ExpressionType::ArrayLiteral(ArrayLiteral{
+                token: self.cur_token.clone(), elements: expr_vec
+            })
+        )
+    }
+
+    pub fn parse_expression_list(&mut self, end: token::TokenType) -> Vec<ExpressionType> {
+        let mut args = Vec::new();
+
+        if self.peek_token_is(end) {
             self.next_token();
-            return Vec::new()
+            return args;
         }
 
         self.next_token();
-        let mut arguments= Vec::new();
         
         if let Some(expr) = self.parse_expression(Precedence::LOWEST) {
-            arguments.push(expr);
+            args.push(expr);
+        } else {
+            return args;
         }
-
+        
         while self.peek_token_is(token::COMMA) {
             self.next_token();
             self.next_token();
-
+            
             if let Some(expr) = self.parse_expression(Precedence::LOWEST) {
-                arguments.push(expr);
+                args.push(expr);
+            } else {
+                break;
             }
         }
 
-        if !self.expect_peek(token::RPAREN) {
-            self.errors.push("Expected ')' after call arguments".to_string());
-            return Vec::new()
+        if !self.expect_peek(end) {
+            return Vec::new();
         }
 
-        arguments
+        args
     }
 
 }

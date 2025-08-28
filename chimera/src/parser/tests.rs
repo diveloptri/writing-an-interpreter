@@ -719,6 +719,46 @@ mod tests {
 
     }
 
+    #[test]
+    fn test_parsing_array_literal() {
+        let input = String::from("[1, 2 * 2, 3 + 3]");
+
+        let lexer = lexer::Lexer::new(input.to_string());
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
+        };
+
+        let array_literal = match &stmt.expression {
+            Some(ExpressionType::ArrayLiteral(array_lit)) => array_lit,
+            _ => panic!("stmt.expression is not ast::ArrayLiteral. got = {:?}", stmt.expression) 
+        };
+
+        assert_eq!(
+            array_literal.elements.len(),
+            3,
+            "array.elements not 3. got = {}",
+            array_literal.elements.len()
+        );
+
+        assert!(
+            test_integer_literal(&array_literal.elements[0], 1)
+        );
+
+        assert!(
+            test_infix_expression(&array_literal.elements[1], TestValue::Integer(2), "*", TestValue::Integer(2))
+        );
+
+        assert!(
+            test_infix_expression(&array_literal.elements[2], TestValue::Integer(3), "+", TestValue::Integer(3))
+        );
+
+    }
+
     // Helper
     fn test_identifier(expr: &ExpressionType, value: &str) -> bool {
         match expr {
