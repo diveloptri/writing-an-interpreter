@@ -59,6 +59,7 @@ fn eval_expression_type(expr: &ExpressionType, env: &mut Environment) -> Object 
         },
         ExpressionType::BlockStatement(block_stmt) => eval_block_statements(block_stmt, env),
         ExpressionType::ArrayLiteral(_) => todo!(),
+        ExpressionType::IndexExpression(_) => todo!(),
     }
 }
 

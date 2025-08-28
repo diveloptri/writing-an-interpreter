@@ -56,6 +56,7 @@ pub enum ExpressionType {
     CallExpression(CallExpressionWrapped),
     BlockStatement(BlockStatement),
     ArrayLiteral(ArrayLiteral),
+    IndexExpression(IndexExpressionWrapped),
 }
 
 impl Node for ExpressionType {
@@ -72,6 +73,7 @@ impl Node for ExpressionType {
             ExpressionType::CallExpression(expr) => expr.token_literal(),
             ExpressionType::BlockStatement(expr) => expr.token_literal(),
             ExpressionType::ArrayLiteral(expr) => expr.token_literal(),
+            ExpressionType::IndexExpression(expr) => expr.token_literal(),
         }
     }
     
@@ -88,6 +90,7 @@ impl Node for ExpressionType {
             ExpressionType::CallExpression(expr) => expr.string(),
             ExpressionType::BlockStatement(expr) => expr.string(),
             ExpressionType::ArrayLiteral(expr) => expr.string(),
+            ExpressionType::IndexExpression(expr) => expr.string(),
         }
     }
 
@@ -476,6 +479,29 @@ impl Node for ArrayLiteral {
         let elements = self.elements.iter().map(|element| element.string()).collect::<Vec<String>>().join(", ");
 
         format!("[{}]", elements)
+    }
+
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Debug, Clone)]
+pub struct IndexExpressionWrapped {
+    pub token: Token,
+    pub left: Box<ExpressionType>,
+    pub index: Box<ExpressionType>
+}
+
+impl Expression for IndexExpressionWrapped {
+    fn expression_node(&self) {}
+}
+
+impl Node for IndexExpressionWrapped {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        format!("({}[{}])", self.left.string(), self.index.string())
     }
 
     fn as_any(&self) -> &dyn Any { self }

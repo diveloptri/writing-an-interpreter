@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::lexer::lexer::Lexer;
-use crate::ast::ast::{self, ArrayLiteral, BlockStatement, CallExpressionWrapped, ExpressionStatement, ExpressionType, FunctionLiteral, Identifier, IfExpressionWrapped, InfixExpressionWrapped, IntegerLiteral, LetStatement, PrefixExpressionWrapped, Program, ReturnStatement, StatementType, StringLiteral};
+use crate::ast::ast::{self, ArrayLiteral, BlockStatement, CallExpressionWrapped, ExpressionStatement, ExpressionType, FunctionLiteral, Identifier, IfExpressionWrapped, IndexExpressionWrapped, InfixExpressionWrapped, IntegerLiteral, LetStatement, PrefixExpressionWrapped, Program, ReturnStatement, StatementType, StringLiteral};
 use crate::token::token::{self, Token, TokenType};
 
 
@@ -13,7 +13,8 @@ pub enum Precedence {
     SUM,
     PRODUCT,
     PREFIX,
-    CALL
+    CALL,
+    INDEX
 }
 
 pub fn get_precedences() -> HashMap<TokenType, Precedence> {
@@ -27,6 +28,7 @@ pub fn get_precedences() -> HashMap<TokenType, Precedence> {
     map.insert(token::SLASH, Precedence::PRODUCT);
     map.insert(token::ASTERISK, Precedence::PRODUCT);
     map.insert(token::LPAREN, Precedence::CALL);
+    map.insert(token::LBRACKET, Precedence::INDEX);
 
     map
 }
@@ -93,6 +95,10 @@ impl Parser {
                     self.next_token();
                     left_exp = self.parse_call_expression(left_exp)?;
                 },
+                token::LBRACKET => {
+                    self.next_token();
+                    left_exp = self.parse_index_expression(left_exp)?;
+                }
                 _ => return Some(left_exp)
             }
         }
@@ -488,6 +494,28 @@ impl Parser {
         }
 
         args
+    }
+
+    pub fn parse_index_expression(&mut self, left: ExpressionType) -> Option<ExpressionType> {
+        let token = self.cur_token.clone();
+        self.next_token();
+
+        let index = match self.parse_expression(Precedence::LOWEST) {
+            Some(expr) => Box::new(expr),
+            None => return None
+        };
+
+        if !self.expect_peek(token::RBRACKET) {
+            return None
+        }
+
+        let idx_expr = IndexExpressionWrapped{
+            token,
+            left: Box::new(left),
+            index,
+        };
+
+        Some(ExpressionType::IndexExpression(idx_expr))
     }
 
 }

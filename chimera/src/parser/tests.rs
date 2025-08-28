@@ -394,6 +394,8 @@ mod tests {
             PrecedenceTest{input: "a + add(b * c) + d", expected: "((a + add((b * c))) + d)"},
             PrecedenceTest{input: "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", expected: "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
             PrecedenceTest{input: "add(a + b + c * d / f + g)", expected: "add((((a + b) + ((c * d) / f)) + g))"},
+            PrecedenceTest{input: "a * [1, 2, 3, 4][b * c] * d", expected: "((a * ([1, 2, 3, 4][(b * c)])) * d)"},
+            PrecedenceTest{input: "add(a * b[2], b[1], 2 * [1, 2][1])", expected: "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))"},
         ];
 
         for test in precedence_tests.iter() {
@@ -755,6 +757,35 @@ mod tests {
 
         assert!(
             test_infix_expression(&array_literal.elements[2], TestValue::Integer(3), "+", TestValue::Integer(3))
+        );
+
+    }
+
+    #[test]
+    fn test_parsing_index_expressions() {
+        let input = String::from("myArray[1 + 1]");
+
+        let lexer = lexer::Lexer::new(input.to_string());
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
+        };
+
+        let idx_expr= match &stmt.expression {
+            Some(ExpressionType::IndexExpression(idx_expr)) => idx_expr,
+            _ => panic!("stmt.expression is not ast::IndexExpression. got = {:?}", stmt.expression) 
+        };
+
+        assert!(
+            test_identifier(&idx_expr.left, "myArray")
+        );
+
+        assert!(
+            test_infix_expression(&idx_expr.index, TestValue::Integer(1), "+", TestValue::Integer(1))
         );
 
     }
