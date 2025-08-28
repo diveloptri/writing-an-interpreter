@@ -449,7 +449,29 @@ mod tests {
                     }
                 },
                 TestValue::Null => eprintln!("object is not Error. got = {:?}", evaluated),
-                }
             }
         }
+    }
+
+    #[test]
+    fn test_array_literals() {
+        let input = String::from("[1, 2 * 2, 3 + 3]");
+        let evaluated = test_eval(input);
+
+        match evaluated {
+            Object::Array(vec_obj) => {
+                assert_eq!(
+                    vec_obj.len(),
+                    3,
+                    "array has wrong num of element. got = {}",
+                    vec_obj.len()
+                );
+
+                assert!(test_integer_object(vec_obj[0].clone(), 1));
+                assert!(test_integer_object(vec_obj[1].clone(), 4));
+                assert!(test_integer_object(vec_obj[2].clone(), 6));
+            },
+            _ => panic!("object is not Array. got = {:?}", evaluated)
+        }
+    }
 }

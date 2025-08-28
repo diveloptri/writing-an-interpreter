@@ -14,17 +14,19 @@ pub const BOOLEAN:  &str = "BOOLEAN";
 pub const NULL: &str = "NULL";
 pub const STRING_OBJ: &str = "STRING";
 pub const BUILTIN_OBJ: &str = "BUILTIN";
+pub const ARRAY_OBJ: &str = "ARRAY";
 
 #[derive(Debug, Clone)]
 pub enum Object {
-    Builtin(String),
-    Function(Vec<ast::Identifier>, ast::BlockStatement, Rc<RefCell<Environment>>),
-    Error(String),
-    ReturnValue(Box<Object>),
     Integer(i64),
     String(String),
     Boolean(bool),
     Null,
+    Error(String),
+    Function(Vec<ast::Identifier>, ast::BlockStatement, Rc<RefCell<Environment>>),
+    ReturnValue(Box<Object>),
+    Builtin(String),
+    Array(Vec<Object>),
 }
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -36,6 +38,9 @@ impl PartialEq for Object {
             (Object::Error(a), Object::Error(b)) => a == b,
             (Object::Function(..), Object::Function(..)) => false,
             (Object::Builtin(_), Object::Builtin(_)) => false,
+            (Object::Array(a), Object::Array(b)) => {
+                a.len() == b.len() && a.iter().zip(b.iter()).all(|(a, b)| a == b)
+            },
             _ => false,
         }
     }
@@ -43,30 +48,39 @@ impl PartialEq for Object {
 impl Object {
     pub fn object_type(&self) -> ObjectType {
         match self {
-            Object::Builtin(_) => BUILTIN_OBJ,
-            Object::Function(..) => FUNCTION_OBJ,
-            Object::Error(_) => ERROR_OBJ,
-            Object::ReturnValue(_) => RETURN_VALUE_OBJ,
             Object::Integer(_) => INTEGER_OBJ,
             Object::String(_) => STRING_OBJ,
             Object::Boolean(_) => BOOLEAN,
             Object::Null => NULL,
+            Object::Error(_) => ERROR_OBJ,
+            Object::Function(..) => FUNCTION_OBJ,
+            Object::ReturnValue(_) => RETURN_VALUE_OBJ,
+            Object::Builtin(_) => BUILTIN_OBJ,
+            Object::Array(_) => ARRAY_OBJ,
         }
     }
 
     pub fn inspect(&self) -> String {
         match self {
-            Object::Builtin(_) => "builtin function".to_string(),
-            Object::Function(parameters, body, _)=> { 
-                format!("fn({:?}) {{\n {} \n}}",
-                parameters.iter().map(|val| format!("{},", val.string())), &*body.string())
-            },
-            Object::Error(val) => { format!("ERROR: {}", val)},
-            Object::ReturnValue(val) => val.inspect(),
             Object::Integer(val) => val.to_string(),
             Object::String(val) => val.to_string(),
             Object::Boolean(val) => val.to_string(),
             Object::Null => "null".to_string(),
+            Object::Error(val) => { format!("ERROR: {}", val)},
+            Object::Function(parameters, body, _)=> { 
+                format!(
+                    "fn({:?}) {{\n {} \n}}",
+                    parameters.iter().map(|val| format!("{},", val.string())), &*body.string()
+                )
+            },
+            Object::ReturnValue(val) => val.inspect(),
+            Object::Builtin(_) => "builtin function".to_string(),
+            Object::Array(elements) => {
+                format!(
+                    "[{}]",
+                    elements.iter().map(|element| element.inspect()).collect::<Vec<String>>().join(", ")
+                )
+            },
         }
     }
 }

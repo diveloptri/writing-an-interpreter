@@ -58,7 +58,13 @@ fn eval_expression_type(expr: &ExpressionType, env: &mut Environment) -> Object 
             apply_function(function, arguments)
         },
         ExpressionType::BlockStatement(block_stmt) => eval_block_statements(block_stmt, env),
-        ExpressionType::ArrayLiteral(_) => todo!(),
+        ExpressionType::ArrayLiteral(arr_lit) => {
+            let elements = eval_expression(&arr_lit.elements, env);
+            if elements.len() == 1 && is_error(&elements[0]) {
+                return elements[0].clone();
+            }
+            Object::Array(elements)
+        },
         ExpressionType::IndexExpression(_) => todo!(),
     }
 }
