@@ -474,4 +474,36 @@ mod tests {
             _ => panic!("object is not Array. got = {:?}", evaluated)
         }
     }
+
+    #[test]
+    fn test_array_index_expression() {
+        struct ArrayIndexExpressionTest{
+            input: &'static str,
+            expected: TestValue,
+        }
+
+        let array_index_expression_tests= [
+            ArrayIndexExpressionTest{input: "[1, 2, 3][0]", expected: TestValue::Integer(1)},
+            ArrayIndexExpressionTest{input: "[1, 2, 3][1]", expected: TestValue::Integer(2)},
+            ArrayIndexExpressionTest{input: "[1, 2, 3][2]", expected: TestValue::Integer(3)},
+            ArrayIndexExpressionTest{input: "let i = 0; [1][i]", expected: TestValue::Integer(1)},
+            ArrayIndexExpressionTest{input: "[1, 2, 3][1 + 1]", expected: TestValue::Integer(3)},
+            ArrayIndexExpressionTest{input: "let myArray = [1, 2, 3]; myArray[2]", expected: TestValue::Integer(3)},
+            ArrayIndexExpressionTest{input: "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2]", expected: TestValue::Integer(6)},
+            ArrayIndexExpressionTest{input: "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i];", expected: TestValue::Integer(2)},
+            ArrayIndexExpressionTest{input: "[1, 2, 3][3];", expected: TestValue::Null},
+            ArrayIndexExpressionTest{input: "[1, 2, 3][-1];", expected: TestValue::Null},
+        ];
+
+        for test in array_index_expression_tests.iter() {
+            let evaluated = test_eval(test.input.to_string());
+            match test.expected {
+                TestValue::Integer(int) => {
+                    assert!(test_integer_object(evaluated, int))
+                },
+                _ => assert!(test_null_object(evaluated))
+            };
+        }
+
+    }
 }

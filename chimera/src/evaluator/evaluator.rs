@@ -4,7 +4,7 @@ use std::rc::Rc;
 use crate::ast::ast::{self, ExpressionType, StatementType};
 use crate::evaluator::builtins::builtins;
 use crate::object::environment::Environment;
-use crate::object::object::{Object, STRING_OBJ};
+use crate::object::object::{Object, ARRAY_OBJ, INTEGER_OBJ, STRING_OBJ};
 
 pub fn eval(program: &ast::Program, env: &mut Environment) -> Object {
     eval_program(program, env)
@@ -65,7 +65,19 @@ fn eval_expression_type(expr: &ExpressionType, env: &mut Environment) -> Object 
             }
             Object::Array(elements)
         },
-        ExpressionType::IndexExpression(_) => todo!(),
+        ExpressionType::IndexExpression(idx_expr) => {
+            let left = eval_expression_type(&idx_expr.left, env);
+            if is_error(&left) {
+                return left
+            }
+
+            let idx = eval_expression_type(&idx_expr.index, env);
+            if is_error(&idx){
+                return idx
+            }
+
+            eval_index_expression(left, idx)
+        },
     }
 }
 
@@ -311,4 +323,29 @@ fn eval_string_infix_expression(operator: &str, left: Object, right: Object) -> 
         (Object::String(l), Object::String(r)) => Object::String(format!("{}{}", l, r)),
         _ => Object::Null
     }
+}
+
+fn eval_index_expression(left: Object, index: Object) -> Object {
+    if left.object_type() == ARRAY_OBJ && index.object_type() == INTEGER_OBJ {
+        return eval_array_index_expression(&left, &index)
+    }
+    new_error(format!("index operator not supported: {}", left.object_type()))
+}
+
+fn eval_array_index_expression(array: &Object, index: &Object) -> Object {
+    match (array, index) {
+        (Object::Array(elements), Object::Integer(idx)) => {
+            if elements.is_empty() {
+                return Object::Null
+            }
+
+            let max = (elements.len() - 1) as i64;
+            if *idx < 0 || *idx > max {
+                return Object::Null
+            }
+            elements[*idx as usize].clone()
+        },
+        _ => Object::Null
+    }
+
 }
