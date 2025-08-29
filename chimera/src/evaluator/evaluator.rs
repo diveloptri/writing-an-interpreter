@@ -279,7 +279,7 @@ fn is_error(object: &Object) -> bool {
 }
 
 fn is_builtin(name: &str) -> bool {
-    matches!(name, "len")
+    matches!(name, "len" | "first" | "last" | "rest" | "push")
 }
 
 fn apply_function(function: Object, args: Vec<Object>) -> Object {

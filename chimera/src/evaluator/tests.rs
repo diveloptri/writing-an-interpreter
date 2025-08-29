@@ -145,6 +145,7 @@ mod tests {
     
     #[derive(Debug, Clone, PartialEq)]
     enum TestValue {
+        Array(Vec<i64>),
         Integer(i64),
         Error(String),
         Null,
@@ -180,7 +181,7 @@ mod tests {
                         test_null_object(evaluated)
                     );
                 },
-                TestValue::Error(_) => (),
+                _ => (),
             }
         }
     }
@@ -428,7 +429,17 @@ mod tests {
             BuiltinFunctionsTest{input: r#"len("four")"#, expected: TestValue::Integer(4)},
             BuiltinFunctionsTest{input: r#"len("hello world")"#, expected: TestValue::Integer(11)},
             BuiltinFunctionsTest{input: r#"len(1)"#, expected: TestValue::Error(String::from("argument to `len` not supported, got = INTEGER"))},
-            BuiltinFunctionsTest{input: r#"len("one", "two")"#, expected: TestValue::Error(String::from("wrong number of arguments. got = 2, want = 1"))}
+            BuiltinFunctionsTest{input: r#"len("one", "two")"#, expected: TestValue::Error(String::from("wrong number of arguments. got = 2, want = 1"))},
+            BuiltinFunctionsTest{input: "first([1, 2, 3])", expected: TestValue::Integer(1)},
+            BuiltinFunctionsTest{input: "first([])", expected: TestValue::Null},
+            BuiltinFunctionsTest{input: "first(1)", expected: TestValue::Error(String::from("argument to `first` must be ARRAY, got = INTEGER"))},
+            BuiltinFunctionsTest{input: "last([1, 2, 3])", expected: TestValue::Integer(3)},
+            BuiltinFunctionsTest{input: "last([])", expected: TestValue::Null},
+            BuiltinFunctionsTest{input: "last(1)", expected: TestValue::Error(String::from("argument to `last` must be ARRAY, got = INTEGER"))},
+            BuiltinFunctionsTest{input: "rest([1, 2, 3])", expected: TestValue::Array(vec![2, 3])},
+            BuiltinFunctionsTest{input: "rest([])", expected: TestValue::Null},
+            BuiltinFunctionsTest{input: "push([], 1)", expected: TestValue::Array(vec![1])},
+            BuiltinFunctionsTest{input: "push(1, 1)", expected: TestValue::Error(String::from("argument to `push` must be ARRAY, got = INTEGER"))},
         ];
 
         for test in builtin_functions_test.iter() {
@@ -448,7 +459,26 @@ mod tests {
                         _ => panic!("Expected error, got = {:?}", evaluated)
                     }
                 },
-                TestValue::Null => eprintln!("object is not Error. got = {:?}", evaluated),
+                TestValue::Array(expected_elements) => {
+                    match evaluated {
+                        Object::Array(actual_elements) => {
+                            assert_eq!(
+                                actual_elements.len(),
+                                expected_elements.len(),
+                                "wrong number of elements. want = {}, got = {}",
+                                expected_elements.len(),
+                                actual_elements.len()
+                            );
+
+                            for (idx, expected_element) in expected_elements.iter().enumerate() {
+                                assert!(test_integer_object(actual_elements[idx].clone(), *expected_element))
+                            }
+
+                        },
+                        _ => eprintln!("Expected Array. got = {:?}", evaluated)
+                    }
+                }
+                TestValue::Null => assert!(test_null_object(evaluated)),
             }
         }
     }

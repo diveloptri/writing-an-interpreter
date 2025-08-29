@@ -28,6 +28,7 @@ mod tests {
             "foobar"
             "foo bar"
             [1, 2];
+            {"foo": "bar"}
             "#
         );
         let mut lexer = crate::lexer::lexer::Lexer::new(input);
@@ -142,6 +143,12 @@ mod tests {
         test_token_vec.push(Token{ token_type: INT, literal: String::from("2")});
         test_token_vec.push(Token{ token_type: RBRACKET, literal: String::from("]")});
         test_token_vec.push(Token{ token_type: SEMICOLON, literal: String::from(";")});
+
+        test_token_vec.push(Token{ token_type: LBRACE, literal: String::from("{")});
+        test_token_vec.push(Token{ token_type: STRING, literal: String::from("foo")});
+        test_token_vec.push(Token{ token_type: COLON, literal: String::from(":")});
+        test_token_vec.push(Token{ token_type: STRING, literal: String::from("bar")});
+        test_token_vec.push(Token{ token_type: RBRACE, literal: String::from("}")});
 
         test_token_vec.push(Token{ token_type: EOF, literal: String::from("")});
 

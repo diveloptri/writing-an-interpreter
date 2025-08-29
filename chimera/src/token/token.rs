@@ -32,6 +32,7 @@ pub const NQ: &str = "!=";
 // Delimeters
 pub const COMMA: &str = ",";
 pub const SEMICOLON: &str = ";";
+pub const COLON: &str = ":";
 
 pub const LPAREN: &str = "(";
 pub const RPAREN: &str = ")";

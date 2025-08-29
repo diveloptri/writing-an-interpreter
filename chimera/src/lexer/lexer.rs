@@ -68,7 +68,10 @@ impl Lexer {
             b'"' => {
                 let literal = self.read_string();
                 token = Token{token_type: STRING, literal: literal}
-            }
+            },
+            b':' => {
+                token = new_token(COLON, self.character)
+            },
             _ => {
                 if self.character.is_ascii_alphabetic(){
                     token.literal = self.read_identifier();
