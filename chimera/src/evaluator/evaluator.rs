@@ -78,6 +78,7 @@ fn eval_expression_type(expr: &ExpressionType, env: &mut Environment) -> Object 
 
             eval_index_expression(left, idx)
         },
+        ExpressionType::HashLiteral(_) => todo!()
     }
 }
 

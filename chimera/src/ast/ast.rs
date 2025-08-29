@@ -57,6 +57,7 @@ pub enum ExpressionType {
     BlockStatement(BlockStatement),
     ArrayLiteral(ArrayLiteral),
     IndexExpression(IndexExpressionWrapped),
+    HashLiteral(HashLiteral)
 }
 
 impl Node for ExpressionType {
@@ -74,6 +75,7 @@ impl Node for ExpressionType {
             ExpressionType::BlockStatement(expr) => expr.token_literal(),
             ExpressionType::ArrayLiteral(expr) => expr.token_literal(),
             ExpressionType::IndexExpression(expr) => expr.token_literal(),
+            ExpressionType::HashLiteral(expr) => expr.token_literal(),
         }
     }
     
@@ -91,6 +93,7 @@ impl Node for ExpressionType {
             ExpressionType::BlockStatement(expr) => expr.string(),
             ExpressionType::ArrayLiteral(expr) => expr.string(),
             ExpressionType::IndexExpression(expr) => expr.string(),
+            ExpressionType::HashLiteral(expr) => expr.string(),
         }
     }
 
@@ -502,6 +505,30 @@ impl Node for IndexExpressionWrapped {
 
     fn string(&self) -> String {
         format!("({}[{}])", self.left.string(), self.index.string())
+    }
+
+    fn as_any(&self) -> &dyn Any { self }
+}
+
+#[derive(Debug, Clone)]
+pub struct HashLiteral{
+    pub token: Token,
+    pub pairs: Vec<(ExpressionType, ExpressionType)>
+}
+
+impl Expression for HashLiteral{
+    fn expression_node(&self) {}
+}
+
+impl Node for HashLiteral{
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+
+    fn string(&self) -> String {
+        let pairs= self.pairs.iter().map(|(key, value)| format!("{}:{}", key.string(), value.string())).collect::<Vec<String>>().join(", ");
+
+        format!("{{{}}}", pairs)
     }
 
     fn as_any(&self) -> &dyn Any { self }

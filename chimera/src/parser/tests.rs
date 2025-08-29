@@ -790,6 +790,227 @@ mod tests {
 
     }
 
+    #[test]
+    fn test_parsing_hash_literal_string_keys() {
+        let input = String::from(r#"{"one": 1, "two": 2, "three": 3}"#);
+
+        let lexer = lexer::Lexer::new(input.to_string());
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
+        };
+
+        let hash= match &stmt.expression {
+            Some(ExpressionType::HashLiteral(hash)) => hash,
+            _ => panic!("stmt.expression is not ast::HashLiteral. got = {:?}", stmt.expression) 
+        };
+
+        assert_eq!(
+            hash.pairs.len(),
+            3,
+            "hash.pairs has wrong length. got = {}",
+            hash.pairs.len()
+        );
+
+        for (key, value) in &hash.pairs {
+            match key {
+                ExpressionType::StringLiteral(str_lit) => {
+                    assert!(
+                        ["one", "two", "three"].contains(&str_lit.value.as_str())
+                    );
+                },
+                _ => panic!("key is not ast::StringLiteral. got = {:?}", key)
+            }
+
+            match value {
+                ExpressionType::IntegerLiteral(int_lit) => {
+                    assert!([1, 2, 3].contains(&int_lit.value));
+                },
+                _ => panic!("value is not ast::IntegerLiteral. got = {:?}", value)
+            }
+
+        }
+    }
+
+    #[test]
+    fn test_parsing_empty_hash_literal() {
+        let input = String::from("{}");
+
+        let lexer = lexer::Lexer::new(input.to_string());
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
+        };
+
+        let hash= match &stmt.expression {
+            Some(ExpressionType::HashLiteral(hash)) => hash,
+            _ => panic!("stmt.expression is not ast::HashLiteral. got = {:?}", stmt.expression) 
+        };
+
+        assert_eq!(
+            hash.pairs.len(),
+            0,
+            "hash.pairs has wrong length. got = {}",
+            hash.pairs.len()
+        );
+    }
+
+    #[test]
+    fn test_parsing_hash_literal_boolean_keys() {
+        let input = String::from("{true: 1, false: 2}");
+
+        let lexer = lexer::Lexer::new(input.to_string());
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
+        };
+
+        let hash= match &stmt.expression {
+            Some(ExpressionType::HashLiteral(hash)) => hash,
+            _ => panic!("stmt.expression is not ast::HashLiteral. got = {:?}", stmt.expression) 
+        };
+
+        assert_eq!(
+            hash.pairs.len(),
+            2,
+            "hash.pairs has wrong length. got = {}",
+            hash.pairs.len()
+        );
+
+        for (key, value) in &hash.pairs {
+            match key {
+                ExpressionType::Boolean(bool_lit) => {
+                    assert!(
+                        [true, false].contains(&bool_lit.value)
+                    );
+                },
+                _ => panic!("key is not ast::Boolean. got = {:?}", key)
+            }
+
+            match value {
+                ExpressionType::IntegerLiteral(int_lit) => {
+                    assert!([1, 2].contains(&int_lit.value));
+                },
+                _ => panic!("value is not ast::IntegerLiteral. got = {:?}", value)
+            }
+        }
+    }
+
+    #[test]
+    fn test_parsing_hash_literal_integer_keys() {
+        let input = String::from("{1: 1, 2: 2, 3: 3}");
+
+        let lexer = lexer::Lexer::new(input.to_string());
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
+        };
+
+        let hash= match &stmt.expression {
+            Some(ExpressionType::HashLiteral(hash)) => hash,
+            _ => panic!("stmt.expression is not ast::HashLiteral. got = {:?}", stmt.expression) 
+        };
+
+        assert_eq!(
+            hash.pairs.len(),
+            3,
+            "hash.pairs has wrong length. got = {}",
+            hash.pairs.len()
+        );
+
+        for (key, value) in &hash.pairs {
+            match key {
+                ExpressionType::IntegerLiteral(int_lit) => {
+                    assert!(
+                        [1, 2, 3].contains(&int_lit.value)
+                    );
+                },
+                _ => panic!("key is not ast::IntegerLiteral. got = {:?}", key)
+            }
+
+            match value {
+                ExpressionType::IntegerLiteral(int_lit) => {
+                    assert!([1, 2, 3].contains(&int_lit.value));
+                },
+                _ => panic!("value is not ast::IntegerLiteral. got = {:?}", value)
+            }
+        }
+    }
+
+    #[test]
+    fn test_parsing_hash_literal_with_expressions() {
+        let input = String::from(r#"{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}"#);
+
+        let lexer = lexer::Lexer::new(input.to_string());
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        let stmt = match &program.statements[0] {
+            StatementType::Expression(stmt) => stmt,
+            _ => panic!("program.statements[0] is not ast::ExpressionStatement"), 
+        };
+
+        let hash= match &stmt.expression {
+            Some(ExpressionType::HashLiteral(hash)) => hash,
+            _ => panic!("stmt.expression is not ast::HashLiteral. got = {:?}", stmt.expression) 
+        };
+
+        assert_eq!(
+            hash.pairs.len(),
+            3,
+            "hash.pairs has wrong length. got = {}",
+            hash.pairs.len()
+        );
+
+        for (key, value) in &hash.pairs {
+            let key_str = match key {
+                ExpressionType::StringLiteral(str_lit) => &str_lit.value,
+                _ => panic!("key is not ast::StringLiteral. got = {:?}", key)
+            };
+
+            match value {
+                ExpressionType::InfixExpression(infix_expr) => {
+                    match key_str.as_ref() {
+                        "one" => {
+                            assert_eq!(infix_expr.operator, "+");
+                            assert!(test_integer_literal(&infix_expr.left, 0));
+                            assert!(test_integer_literal(&infix_expr.right, 1));
+                        },
+                        "two" => {
+                            assert_eq!(infix_expr.operator, "-");
+                            assert!(test_integer_literal(&infix_expr.left, 10));
+                            assert!(test_integer_literal(&infix_expr.right, 8));
+                        },
+                        "three" => {
+                            assert_eq!(infix_expr.operator, "/");
+                            assert!(test_integer_literal(&infix_expr.left, 15));
+                            assert!(test_integer_literal(&infix_expr.right, 5));
+                        },
+                        _ => panic!("Unexpexted Key. got = {:?}", key_str),
+                    }
+                },
+                _ => panic!("value is not InfexExpression. got = {:?}", value)
+            }
+        }
+    }
+
     // Helper
     fn test_identifier(expr: &ExpressionType, value: &str) -> bool {
         match expr {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::lexer::lexer::Lexer;
-use crate::ast::ast::{self, ArrayLiteral, BlockStatement, CallExpressionWrapped, ExpressionStatement, ExpressionType, FunctionLiteral, Identifier, IfExpressionWrapped, IndexExpressionWrapped, InfixExpressionWrapped, IntegerLiteral, LetStatement, PrefixExpressionWrapped, Program, ReturnStatement, StatementType, StringLiteral};
+use crate::ast::ast::{self, ArrayLiteral, BlockStatement, CallExpressionWrapped, ExpressionStatement, ExpressionType, FunctionLiteral, HashLiteral, Identifier, IfExpressionWrapped, IndexExpressionWrapped, InfixExpressionWrapped, IntegerLiteral, LetStatement, PrefixExpressionWrapped, Program, ReturnStatement, StatementType, StringLiteral};
 use crate::token::token::{self, Token, TokenType};
 
 
@@ -78,6 +78,7 @@ impl Parser {
             token::IF => self.parse_if_expression(),
             token::FUNCTION => self.parse_function_literal(),
             token::LBRACKET => self.parse_array_literals(),
+            token::LBRACE => self.parse_hash_literal(),
             _ => {
                 self.unsupported_prefix_token_error(&self.cur_token.token_type);
                 return None;
@@ -516,6 +517,40 @@ impl Parser {
         };
 
         Some(ExpressionType::IndexExpression(idx_expr))
+    }
+
+    pub fn parse_hash_literal(&mut self) -> Option<ExpressionType> {
+        let token = self.cur_token.clone();
+        let mut pairs = Vec::new();
+
+        while !self.peek_token_is(token::RBRACE) {
+            self.next_token();
+            let key = self.parse_expression(Precedence::LOWEST);
+
+            if !self.expect_peek(token::COLON) {
+                return None
+            }
+
+            self.next_token();
+            let value = self.parse_expression(Precedence::LOWEST);
+
+            match (key, value) {
+                (Some(key), Some(value)) => {
+                    pairs.push((key, value));
+                },
+                _ => return None
+            };
+
+            if !self.peek_token_is(token::RBRACE) && !self.expect_peek(token::COMMA){
+                return None
+            }
+        }
+
+        if !self.expect_peek(token::RBRACE) {
+            return None
+        }
+
+        Some(ExpressionType::HashLiteral(HashLiteral{ token, pairs }))
     }
 
 }
