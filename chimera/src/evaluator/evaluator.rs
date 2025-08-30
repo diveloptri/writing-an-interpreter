@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::ast::ast::{self, ExpressionType, StatementType};
 use crate::evaluator::builtins::builtins;
 use crate::object::environment::Environment;
-use crate::object::object::{Object, ARRAY_OBJ, INTEGER_OBJ, STRING_OBJ};
+use crate::object::object::{Object, ARRAY_OBJ, HASH_OBJ, INTEGER_OBJ, STRING_OBJ};
 
 pub fn eval(program: &ast::Program, env: &mut Environment) -> Object {
     eval_program(program, env)
@@ -331,6 +331,10 @@ fn eval_index_expression(left: Object, index: Object) -> Object {
     if left.object_type() == ARRAY_OBJ && index.object_type() == INTEGER_OBJ {
         return eval_array_index_expression(&left, &index)
     }
+
+    if left.object_type() == HASH_OBJ {
+        return eval_hash_index_expression(&left, &index)
+    }
     new_error(format!("index operator not supported: {}", left.object_type()))
 }
 
@@ -379,4 +383,16 @@ fn eval_hash_literal(hash_lit: &ast::HashLiteral, env: &mut Environment) -> Obje
     };
 
     Object::Hash(hash_pairs)
+}
+
+fn eval_hash_index_expression(hash: &Object, index: &Object) -> Object {
+    if let Object::Hash(hash_pairs) = hash {
+        if let Some(hash_key) = index.hash_key() {
+            hash_pairs.get(&hash_key).cloned().unwrap_or(Object::Null)
+        } else {
+            new_error(format!("unusable as hash key: {}", index.object_type()))
+        }
+    } else {
+        new_error(format!("not a hash: {}", hash.object_type()))
+    }
 }

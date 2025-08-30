@@ -266,6 +266,7 @@ mod tests {
             ErrorTest{input: "if (10 > 1) { if (10 > 1) { return true + false; } return 1; }", expected_message: "unknown operator: BOOLEAN + BOOLEAN"},
             ErrorTest{input: "foobar", expected_message: "identifier not found: foobar"},
             ErrorTest{input: r#""Hello" - "World""#, expected_message: "unknown operator: STRING - STRING"},
+            ErrorTest{input: r#"{"name": "Monkey"}[fn(x) { x }];"#, expected_message: "unusable as hash key: FUNCTION"},
         ];
 
         for test in error_handling_tests.iter() {
@@ -598,6 +599,33 @@ mod tests {
                 }
             },
             _ => panic!("eval didn't return Hash. got = {:?}", evaluated)
+        }
+    }
+
+    #[test]
+    fn test_hash_index_expression() {
+        struct HashIndexExpressionTest{
+            input: &'static str,
+            expected: TestValue,
+        }
+
+        let hash_index_expression_tests= [
+            HashIndexExpressionTest{input: r#"{"foo": 5}["foo"]"#, expected: TestValue::Integer(5)},
+            HashIndexExpressionTest{input: r#"{"foo": 5}["bar"]"#, expected: TestValue::Null},
+            HashIndexExpressionTest{input: r#"let key = "foo"; {"foo": 5}[key]"#, expected: TestValue::Integer(5)},
+            HashIndexExpressionTest{input: r#"{}["foo"]"#, expected: TestValue::Null},
+            HashIndexExpressionTest{input: r#"{true: 5}[true]"#, expected: TestValue::Integer(5)},
+            HashIndexExpressionTest{input: r#"{false: 5}[false]"#, expected: TestValue::Integer(5)}
+        ];
+
+        for test in hash_index_expression_tests.iter() {
+            let evaluated = test_eval(test.input.to_string());
+            match test.expected {
+                TestValue::Integer(int) => {
+                    assert!(test_integer_object(evaluated, int))
+                },
+                _ => assert!(test_null_object(evaluated))
+            };
         }
     }
 }
