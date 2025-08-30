@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::ast::ast::{self, Node};
@@ -15,6 +16,14 @@ pub const NULL: &str = "NULL";
 pub const STRING_OBJ: &str = "STRING";
 pub const BUILTIN_OBJ: &str = "BUILTIN";
 pub const ARRAY_OBJ: &str = "ARRAY";
+pub const HASH_OBJ: &str = "HASH";
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum HashKey {
+    Integer(i64),
+    Boolean(bool),
+    String(String),
+}
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -27,7 +36,9 @@ pub enum Object {
     ReturnValue(Box<Object>),
     Builtin(String),
     Array(Vec<Object>),
+    Hash(HashMap<HashKey, Object>)
 }
+
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -57,6 +68,7 @@ impl Object {
             Object::ReturnValue(_) => RETURN_VALUE_OBJ,
             Object::Builtin(_) => BUILTIN_OBJ,
             Object::Array(_) => ARRAY_OBJ,
+            Object::Hash(_) => HASH_OBJ,
         }
     }
 
@@ -81,6 +93,28 @@ impl Object {
                     elements.iter().map(|element| element.inspect()).collect::<Vec<String>>().join(", ")
                 )
             },
+            Object::Hash(pairs) => {
+                let pairs: Vec<String> = pairs.iter()
+                    .map(|(key, value)| {
+                        let key_str = match key {
+                            HashKey::Integer(int) => int.to_string(),
+                            HashKey::Boolean(bool) => bool.to_string(),
+                            HashKey::String(str) => format!("\"{}\"", str)
+                        };
+                        format!("{}: {}", key_str, value.inspect())
+                    })
+                    .collect();
+                format!("{{{}}}", pairs.join(", "))
+            }
+        }
+    }
+
+    pub fn hash_key(&self) -> Option<HashKey> {
+        match self {
+            Object::Integer(int) => Some(HashKey::Integer(*int)),
+            Object::Boolean(bool) => Some(HashKey::Boolean(*bool)),
+            Object::String(str) => Some(HashKey::String(str.clone())),
+            _ => None
         }
     }
 }
