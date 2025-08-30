@@ -8,6 +8,7 @@ pub fn builtins(name: &str, args: &[Object]) -> Object {
         "last" => last(args),
         "rest" => rest(args),
         "push" => push(args),
+        "println" => println(args),
         _ => new_error(format!("unknown builtin: {}", name)),
     }
 }
@@ -103,4 +104,9 @@ fn push(args: &[Object]) -> Object {
         },
         _ => Object::Null
     }
+}
+
+fn println(args: &[Object]) -> Object {
+    args.iter().for_each(|value| println!("{}", value.inspect()));
+    Object::Null
 }
