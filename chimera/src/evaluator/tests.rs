@@ -2,7 +2,7 @@
 mod tests {
     use crate::ast::ast::Node;
     use crate::lexer::lexer;
-    use crate::object::object::{self, Object};
+    use crate::object::object::{self, HashKey, Object};
     use crate::object::environment::Environment;
     use crate::parser::parser;
     use crate::evaluator::evaluator;
@@ -534,6 +534,70 @@ mod tests {
                 _ => assert!(test_null_object(evaluated))
             };
         }
+    }
+    
+    #[test]
+    fn test_hash_literals() {
+        let input = String::from(r#"
+            let two = "two";
+            {
+                "one": 10 - 9,
+                two: 1 + 1,
+                "thr" + "ee": 6 / 2,
+                4: 4,
+                true: 5,
+                false: 6
+            }
+        "#);
+        let evaluated = test_eval(input);
 
+        match evaluated {
+            Object::Hash(hash_pairs) => {
+                assert_eq!(
+                    hash_pairs.len(),
+                    6,
+                    "Hash has wrong number of pairs. got = {}",
+                    hash_pairs.len()
+                );
+                
+                for (hash_key, hash_val) in &hash_pairs {
+                    match hash_key {
+                        HashKey::String(str) => {
+                            match str.as_str() {
+                                "one" => {
+                                    assert!(test_integer_object(hash_val.clone(), 1));
+                                },
+                                "two" => {
+                                    assert!(test_integer_object(hash_val.clone(), 2));
+                                },
+                                "three" => {
+                                    assert!(test_integer_object(hash_val.clone(), 3));
+                                },
+                                _ => panic!("Unexptected string key: {}", str),
+                            }
+                        },
+                        HashKey::Integer(int) => {
+                            match int {
+                                4 => {
+                                    assert!(test_integer_object(hash_val.clone(), 4));
+                                },
+                                _ => panic!("Unexptected integer key: {}", int),
+                                }
+                        }
+                        HashKey::Boolean(bool_key) => {
+                            match bool_key {
+                                true => {
+                                    assert!(test_integer_object(hash_val.clone(), 5));
+                                },
+                                false => {
+                                    assert!(test_integer_object(hash_val.clone(), 6));
+                                },
+                            }
+                        }
+                    }
+                }
+            },
+            _ => panic!("eval didn't return Hash. got = {:?}", evaluated)
+        }
     }
 }

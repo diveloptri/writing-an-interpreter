@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::ast::ast::{self, ExpressionType, StatementType};
@@ -78,7 +79,7 @@ fn eval_expression_type(expr: &ExpressionType, env: &mut Environment) -> Object 
 
             eval_index_expression(left, idx)
         },
-        ExpressionType::HashLiteral(_) => todo!()
+        ExpressionType::HashLiteral(hash_lit) => eval_hash_literal(hash_lit, env)
     }
 }
 
@@ -348,5 +349,34 @@ fn eval_array_index_expression(array: &Object, index: &Object) -> Object {
         },
         _ => Object::Null
     }
+}
 
+fn eval_hash_literal(hash_lit: &ast::HashLiteral, env: &mut Environment) -> Object {
+    let mut hash_pairs = HashMap::new();
+
+    for (key_expr, value_expr) in &hash_lit.pairs {
+        let key_obj = eval_expression_type(key_expr, env);
+        if is_error(&key_obj) {
+            return key_obj
+        }
+        
+        let hash_key = match key_obj.hash_key() {
+            Some(key) => key,
+            None => {
+                return new_error(format!(
+                    "unusable as hash key: {}",
+                    key_obj.object_type()
+                ));
+            }
+        };
+
+        let value_obj = eval_expression_type(value_expr, env);
+        if is_error(&value_obj) {
+            return  value_obj;
+        }
+
+        hash_pairs.insert(hash_key, value_obj);
+    };
+
+    Object::Hash(hash_pairs)
 }
